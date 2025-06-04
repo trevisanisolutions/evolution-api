@@ -1,0 +1,43 @@
+# Arquivos de ambiente e credenciais
+.env
+*.env
+.env.*
+dao/firebase_credentials_*.json
+
+# Arquivos de byte compilado Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribuição / empacotamento
+dist/
+build/
+*.egg-info/
+
+# Ambientes virtuais
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Cache e logs
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+*.log
+
+# IDEs e editores
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Arquivos locais
+tools/users.json
+COMPILADO.txt
+*.bak

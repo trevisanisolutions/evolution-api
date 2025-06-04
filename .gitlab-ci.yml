@@ -1,0 +1,126 @@
+stages:
+  - build
+  - deploy_homolog
+  - deploy_production
+
+build:
+  stage: build
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG .
+    # Também criar a tag latest apontando para a imagem atual
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:latest
+  only:
+    - deploy_branch
+    - master
+    - homolog
+  when: manual
+
+deploy_homolog:
+  stage: deploy_homolog
+  image: ghcr.io/railwayapp/cli:latest
+  before_script:
+    - export RAILWAY_TOKEN="$RAILWAY_TOKEN_HOMOLOG"
+    - apt-get update -y || apk update
+    - apt-get install -y curl jq || apk add curl jq
+  script:
+    - echo "Implantando no ambiente de HOMOLOGAÇÃO"
+    - railway up --service="$RAILWAY_SERVICE_ID" --environment="homolog"
+    - echo "Aguardando 30 segundos para inicialização da aplicação..."
+    - sleep 30
+    - echo "Verificando saúde da aplicação..."
+    - |
+      HEALTH_URL="$HEALTH_URL_HOMOLOG"
+      MAX_RETRIES=3
+      RETRY_DELAY=10
+      
+      RETRY_COUNT=1
+      while [ $RETRY_COUNT -le $MAX_RETRIES ]; do
+        echo "Tentativa $RETRY_COUNT de $MAX_RETRIES..."
+      
+        # Verificar se curl está instalado
+        if ! command -v curl &> /dev/null; then
+          echo "❌ curl não está instalado!"
+          exit 1
+        fi
+      
+        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_URL)
+      
+        if [ "$RESPONSE" = "200" ]; then
+          echo "✅ Aplicação está saudável (código $RESPONSE)"
+          exit 0
+        else
+          echo "⚠️ Verificação de saúde falhou (código $RESPONSE)"
+      
+          if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            echo "Aguardando $RETRY_DELAY segundos antes da próxima tentativa..."
+            sleep $RETRY_DELAY
+          else
+            echo "❌ Todas as $MAX_RETRIES tentativas falharam"
+            echo "Verifique os logs: railway logs --service=\"$RAILWAY_SERVICE_ID\" --environment=\"homolog\""
+            exit 1
+          fi
+        fi
+      
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+      done
+  only:
+    - deploy_branch
+    - master
+    - homolog
+  when: manual
+
+deploy_production:
+  stage: deploy_production
+  image: ghcr.io/railwayapp/cli:latest
+  before_script:
+    - apt-get update -y || apk update
+    - apt-get install -y curl jq || apk add curl jq
+  script:
+    - echo "Implantando no ambiente de PRODUÇÃO"
+    - railway up --service="$RAILWAY_SERVICE_ID" --environment="production"
+    - echo "Aguardando 30 segundos para inicialização da aplicação..."
+    - sleep 30
+    - echo "Verificando saúde da aplicação..."
+    - |
+      MAX_RETRIES=3
+      RETRY_DELAY=10
+      
+      RETRY_COUNT=1
+      while [ $RETRY_COUNT -le $MAX_RETRIES ]; do
+        echo "Tentativa $RETRY_COUNT de $MAX_RETRIES..."
+      
+        # Verificar se curl está instalado
+        if ! command -v curl &> /dev/null; then
+          echo "❌ curl não está instalado!"
+          exit 1
+        fi
+      
+        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_URL)
+      
+        if [ "$RESPONSE" = "200" ]; then
+          echo "✅ Aplicação está saudável (código $RESPONSE)"
+          exit 0
+        else
+          echo "⚠️ Verificação de saúde falhou (código $RESPONSE)"
+      
+          if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            echo "Aguardando $RETRY_DELAY segundos antes da próxima tentativa..."
+            sleep $RETRY_DELAY
+          else
+            echo "❌ Todas as $MAX_RETRIES tentativas falharam"
+            echo "Verifique os logs: railway logs --service=\"$RAILWAY_SERVICE_ID\" --environment=\"production\""
+            exit 1
+          fi
+        fi
+      
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+      done
+  only:
+    - deploy_branch
+    - master
+  when: manual
