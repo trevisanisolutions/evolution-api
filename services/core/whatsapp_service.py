@@ -7,9 +7,9 @@ import requests
 from ai.openai_service import OpenaiService
 from controllers.dto.message_upsert_dto import MessageUpsertDTO
 from dao.firebase_client import FirebaseClient
-from services.agent_service import AgentService
-from services.buffer.buffer_service import BufferService
-from services.conversation_history_service import ConversationHistoryService
+from services.core.agent_service import AgentService
+from services.core.buffer.buffer_service import BufferService
+from services.core.conversation_history_service import ConversationHistoryService
 from utils.whatsapp_chat_utils import mark_message_as_read
 
 logger = logging.getLogger(__name__)

@@ -3,8 +3,8 @@ import threading
 import time
 
 from dao.firebase_client import FirebaseClient
-from services.buffer.buffer_service import BufferService
-from services.whatsapp_service import WhatsappService
+from services.core.buffer.buffer_service import BufferService
+from services.core.whatsapp_service import WhatsappService
 from utils.config import REPLICA_ID
 from utils.trace import set_trace_id, reset_trace_id
 from utils.whatsapp_chat_utils import send_typing_signal

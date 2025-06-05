@@ -7,7 +7,7 @@ from typing import List, Dict
 from openai import OpenAI
 
 from dao.firebase_client import FirebaseClient
-from services.agent_service import AgentService
+from services.core.agent_service import AgentService
 
 HISTORY_LIMIT = 50
 

@@ -15,7 +15,7 @@ import uvicorn
 from controllers.health_controller import health_router
 from controllers.whatsapp_controller import whatsapp_router
 from dao.firebase_client import init_firebase, FirebaseClient
-from services.buffer.buffer_collector import BufferCollector
+from services.core.buffer.buffer_collector import BufferCollector
 
 logger = logging.getLogger(__name__)
 

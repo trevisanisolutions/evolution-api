@@ -17,8 +17,7 @@ def purge_user_data(user_phone: str):
 
         establishments = FirebaseClient.fetch_data("establishments")
         for establishment_phone, establishment_data in establishments.items():
-            establishment_id = establishment_data["id"]
-            user_path = f"establishments/{establishment_id}/users/{user_phone}"
+            user_path = f"establishments/{establishment_phone}/users/{user_phone}"
             if FirebaseClient.delete_data(user_path):
                 deleted_paths.append(user_path)
 

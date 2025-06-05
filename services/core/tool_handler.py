@@ -5,9 +5,9 @@ import time
 from openai.types.beta.threads import RequiredActionFunctionToolCall
 
 from dao.firebase_client import FirebaseClient
-from services.buffer.buffer_service import BufferService
+from services.core.buffer.buffer_service import BufferService
 from services.sec24.registration.registration_service import SEC24UserService
-from services.thread_service import ThreadService
+from services.core.thread_service import ThreadService
 
 logger = logging.getLogger(__name__)
 

@@ -4,9 +4,9 @@ import time
 from openai import OpenAI
 
 from dao.firebase_client import FirebaseClient
-from services.agent_service import AgentService
-from services.thread_service import ThreadService
-from services.tool_handler import ToolHandler
+from services.core.agent_service import AgentService
+from services.core.thread_service import ThreadService
+from services.core.tool_handler import ToolHandler
 
 logger = logging.getLogger(__name__)
 

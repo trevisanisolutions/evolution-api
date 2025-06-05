@@ -8,8 +8,8 @@ from soupsieve.util import lower
 from controllers.dto.message_upsert_dto import MessageUpsertDTO
 from controllers.dto.precense_update_dto import PresenceUpdateDTO
 from dao.firebase_client import FirebaseClient
-from services.buffer.buffer_service import BufferService
-from services.whatsapp_service import WhatsappService
+from services.core.buffer.buffer_service import BufferService
+from services.core.whatsapp_service import WhatsappService
 
 whatsapp_router = APIRouter()
 
