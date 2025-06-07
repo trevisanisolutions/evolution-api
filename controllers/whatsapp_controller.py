@@ -14,6 +14,7 @@ from services.core.whatsapp_service import WhatsappService
 whatsapp_router = APIRouter()
 
 logger = logging.getLogger(__name__)
+MAX_MESSAGE_LENGTH = 500
 
 
 def is_attendance_active(establishment_phone: str, user_phone: str) -> bool:
@@ -54,6 +55,14 @@ async def handle_evolution_whatsapp(request: Request):
         incoming = MessageUpsertDTO(payload)
         logger.info(
             f"[handle_evolution_whatsapp] {incoming.user_phone if not incoming.from_me else '[Atendente Humano]'} → {incoming.instance_name if not incoming.from_me else incoming.user_phone}: {incoming.user_msg}")
+        if len(incoming.user_msg) > MAX_MESSAGE_LENGTH:
+            user_resp = (
+                "Opa! Sua mensagem é muito longa para processarmos de uma vez. "
+                "Por favor, divida sua mensagem em partes menores ou seja mais específico. "
+                "Isso nos ajuda a atendê-lo melhor e mais rapidamente."
+            )
+            return WhatsappService.send_evolution_response(incoming.instance_name, incoming.user_phone, user_resp)
+
         if "reset" == lower(incoming.user_msg):
             FirebaseClient.delete_data(f"establishments/{incoming.business_phone}/users/{incoming.user_phone}")
             FirebaseClient.delete_data(f"message_buffers/{incoming.user_phone}")

@@ -5,9 +5,11 @@ import time
 from openai.types.beta.threads import RequiredActionFunctionToolCall
 
 from dao.firebase_client import FirebaseClient
+from services.calendar.calendar_functions import create_appointment, cancel_appointment, reschedule_appointment, \
+    check_availability, get_user_appointments
 from services.core.buffer.buffer_service import BufferService
-from services.sec24.registration.registration_service import SEC24UserService
 from services.core.thread_service import ThreadService
+from services.sec24.registration.registration_service import SEC24UserService
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +23,26 @@ class ToolHandler:
                                 run_id: str):
         tool_name = tool_call.function.name
         logger.info(f"[resolve_and_submit_tool] {tool_name} -> {business_phone} -> {user_phone}")
-        result = {}
 
         try:
             args = json.loads(tool_call.function.arguments) if isinstance(tool_call.function.arguments,
                                                                           str) else tool_call.function.arguments
             match tool_name:
+                case "criar_agendamento":
+                    result = create_appointment(args, user_phone)
+
+                case "cancelar_agendamento":
+                    result = cancel_appointment(args, user_phone)
+
+                case "reagendar_agendamento":
+                    result = reschedule_appointment(args, user_phone)
+
+                case "verificar_disponibilidade":
+                    result = check_availability(args)
+
+                case "verificar_agendamentos_usuario":
+                    result = get_user_appointments(args, user_phone)
+
                 case "registrar_usuario":
                     result = SEC24UserService.register_user(args)
 
@@ -41,29 +57,13 @@ class ToolHandler:
 
                 case _:
                     result = {"message": f"Tool '{tool_name}' not supported."}
+            return {"tool_call_id": tool_call.id, "output": json.dumps(result)}
 
-            client.beta.threads.runs.submit_tool_outputs(
-                thread_id=thread_id,
-                run_id=run_id,
-                tool_outputs=[
-                    {
-                        "tool_call_id": tool_call.id,
-                        "output": json.dumps(result)
-                    }
-                ]
-            )
+
         except Exception as e:
             logger.error(f"Erro ao executar tool '{tool_name}': {str(e)}")
-            client.beta.threads.runs.submit_tool_outputs(
-                thread_id=thread_id,
-                run_id=run_id,
-                tool_outputs=[
-                    {
-                        "tool_call_id": tool_call.id,  # ID exato recebido do run
-                        "output": json.dumps(result)  # Resultado da tua função (string ou JSON)
-                    }
-                ]
-            )
+            return {"tool_call_id": tool_call.id,
+                    "output": ToolHandler._build_error_response("Erro ao executar a função")}
 
     @staticmethod
     def _handle_switch_agent(args, business_phone, user_phone, instance_name):

@@ -3,6 +3,7 @@ import logging
 from openai import OpenAI
 
 from dao.firebase_client import FirebaseClient
+from utils.date_utils import get_today_formated
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,9 @@ class ThreadService:
         client = OpenAI(api_key=openai_key)
         thread = client.beta.threads.create()
         thread_info = {"thread_id": thread.id}
+        context = f"⚠️ CONTEXTO AUXILIAR: Hoje é {get_today_formated()}"
+        logger.info(f"[create_new_thread] Envio de contexto auxiliar: {context}")
+        client.beta.threads.messages.create(thread_id=thread.id, role="user", content=context)
         FirebaseClient.save_data(path, thread_info)
         logger.info(
             f"[create_new_thread] Nova thread criada: {thread_info.get('thread_id')} para {user_phone}/{agent_id}")

@@ -24,17 +24,15 @@ class OpenaiService:
 
         assistant_id = AgentService.get_assistant_id(business_phone, agent_id)
 
-        run = client.beta.threads.runs.create(thread_id=thread_id, assistant_id=assistant_id)
-
-        while run.status not in ["completed", "failed", "cancelled"]:
-            logger.info(f"[run.status] {run.status}")
-            time.sleep(1)
-            run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
-            if run.status == "requires_action":
-                tool_calls = run.required_action.submit_tool_outputs.tool_calls
-                for tool_call in tool_calls:
-                    ToolHandler.resolve_and_submit_tool(business_phone, client, user_phone, instance_name, tool_call,
-                                                        thread_id, run.id)
+        run = OpenaiService.execute_run(assistant_id, business_phone, client, instance_name, thread_id, user_phone)
+        usage = run.usage
+        if usage:
+            from services.core.usage_tracker_service import UsageTrackerService
+            UsageTrackerService.update_token_usage(
+                establishment_id=business_phone,
+                input_tokens=usage.prompt_tokens,
+                output_tokens=usage.completion_tokens
+            )
 
         messages = client.beta.threads.messages.list(thread_id=thread_id)
         for msg in messages.data:
@@ -43,3 +41,32 @@ class OpenaiService:
                 logger.info(f"[AI] Resposta gerada: {final_response}")
                 return final_response
         return ""
+
+    @staticmethod
+    def execute_run(assistant_id, business_phone, client, instance_name, thread_id, user_phone):
+        run = client.beta.threads.runs.create(thread_id=thread_id, assistant_id=assistant_id, max_tokens=300)
+        count = 0
+        while run.status not in ["completed", "failed", "cancelled"]:
+            logger.info(f"[run.status] {run.status}")
+            time.sleep(1)
+            if count == 60:
+                logger.warning(f"[Run Timeout] Tempo limite de execução atingido, cancelando a execução.")
+                client.beta.threads.runs.cancel(thread_id=thread_id, run_id=run.id)
+            run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
+            if run.status == "requires_action":
+                result = []
+                tool_calls = run.required_action.submit_tool_outputs.tool_calls
+                for tool_call in tool_calls:
+                    result.append(ToolHandler.resolve_and_submit_tool(business_phone, client, user_phone, instance_name,
+                                                                      tool_call,
+                                                                      thread_id, run.id))
+                client.beta.threads.runs.submit_tool_outputs(
+                    thread_id=thread_id,
+                    run_id=run.id,
+                    tool_outputs=result
+                )
+            count += 1
+        if run.status in ["failed", "cancelled"]:
+            logger.warning(f"[AI] Run falhou ou foi cancelada.")
+            run = OpenaiService.execute_run(assistant_id, business_phone, client, instance_name, thread_id, user_phone)
+        return run
