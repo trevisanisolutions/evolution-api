@@ -44,7 +44,7 @@ class OpenaiService:
 
     @staticmethod
     def execute_run(assistant_id, business_phone, client, instance_name, thread_id, user_phone):
-        run = client.beta.threads.runs.create(thread_id=thread_id, assistant_id=assistant_id, max_tokens=300)
+        run = client.beta.threads.runs.create(thread_id=thread_id, assistant_id=assistant_id)
         count = 0
         while run.status not in ["completed", "failed", "cancelled"]:
             logger.info(f"[run.status] {run.status}")

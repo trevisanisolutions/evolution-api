@@ -42,7 +42,10 @@ def is_slot_available(start, end, events, timezone, user_phone, procedure_name, 
                 if is_self_attendance:
                     if event['extendedProperties']['private'].get('procedure') == procedure_name:
                         same_procedure_count += 1
-                    if not event['extendedProperties']['private'].get('self_attendance_procedure'):
+                    if not (event['extendedProperties']['private'].get('self_attendance_procedure',"false").lower() == 'true'):
+                        return False, "Profissional já está atendendo outro procedimento."
+                else:
+                    if not (event['extendedProperties']['private'].get('self_attendance_procedure',"false").lower() == 'true'):
                         return False, "Profissional já está atendendo outro procedimento."
         except Exception as e:
             logger.warning(f"[is_slot_available] Erro ao processar evento: {e}")
@@ -57,7 +60,7 @@ def check_availability(args):
     procedure_name = args.get("procedure_name")
     procedure_duration_minutes = args.get("procedure_duration_minutes")
     procedure_capacity = args.get("procedure_capacity")
-    is_self_attendance = args.get("self_attendance_procedure", False)
+    is_self_attendance = str(args.get("self_attendance_procedure", "false")).lower() == "true"
     date = args.get("date")
     user_phone = args.get("user_phone")
     work_schedule = args.get("work_schedule")
@@ -151,7 +154,7 @@ def create_appointment(args, user_phone: str):
     time = args.get("time")
     procedure = args.get("procedure")
     user_name = args.get("user_name")
-    self_attendance_procedure = args.get("self_attendance_procedure")
+    self_attendance_procedure = str(args.get("self_attendance_procedure","false")).lower() == "true"
     procedure_duration_minutes = args.get("procedure_duration_minutes", DEFAULT_APPOINTMENT_DURATION)
     procedure_capacity = int(args.get("procedure_capacity", DEFAULT_PROCEDURE_CAPACITY))
 
@@ -260,7 +263,7 @@ def reschedule_appointment(args, user_phone: str):
             if event_user_phone and event_user_phone != user_phone:
                 return json_error("Desculpe, somente a pessoa que fez o agendamento pode reagendá-lo.")
 
-        self_attendance_procedure = current_event['extendedProperties']['private'].get('self_attendance_procedure')
+        self_attendance_procedure = current_event['extendedProperties']['private'].get('self_attendance_procedure',"false").lower() == 'true'
         procedure_capacity = int(
             current_event['extendedProperties']['private'].get('procedure_capacity', DEFAULT_PROCEDURE_CAPACITY))
 
