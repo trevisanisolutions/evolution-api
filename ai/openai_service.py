@@ -7,6 +7,7 @@ from dao.firebase_client import FirebaseClient
 from services.core.agent_service import AgentService
 from services.core.thread_service import ThreadService
 from services.core.tool_handler import ToolHandler
+from utils.date_utils import get_today_formated
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,8 @@ class OpenaiService:
         thread_id = ThreadService.get_thread_id(business_phone, user_phone, agent_id)
         api_key = FirebaseClient.fetch_data(f"establishments/{business_phone}/openai_key")
         client = OpenAI(api_key=api_key)
+        context = f"⚠️ CONTEXTO AUXILIAR: Hoje é {get_today_formated()}"
+        client.beta.threads.messages.create(thread_id=thread_id, role="user", content=context)
         client.beta.threads.messages.create(thread_id=thread_id, role="user", content=user_msg)
 
         assistant_id = AgentService.get_assistant_id(business_phone, agent_id)

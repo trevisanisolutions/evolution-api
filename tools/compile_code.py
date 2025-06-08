@@ -100,7 +100,7 @@ def read_file_content(file_path):
         return f"# ERROR: Não foi possível ler o arquivo: {str(e)}"
 
 
-def clean_text_for_claude(text):
+def clean_text_for_ai(text):
     """Limpa o texto para garantir compatibilidade com o conhecimento do Claude."""
     if not text:
         return ""
@@ -113,122 +113,6 @@ def clean_text_for_claude(text):
             ord(c) >= 128 and ord(c) <= 255))
 
     return cleaned
-
-
-def fetch_firebase_prompts(environment='homolog'):
-    """
-    Busca os prompts do Firebase para incluir na compilação.
-    Requer que o Firebase esteja inicializado.
-    """
-    try:
-        # Importa a classe FirebaseClient do projeto
-        from dao.firebase_client import FirebaseClient, init_firebase
-        from utils.base64_utils import decode_text
-
-        # Inicializa o Firebase (se necessário)
-        init_firebase(environment)
-
-        print("Buscando prompts do Firebase...")
-
-        # Tenta diferentes caminhos para encontrar o prompt base
-        base_prompt_paths = [
-            'system_prompt',  # Caminho original
-            'system_prompts/base',  # Novo caminho modular
-            'prompts/base',  # Alternativa
-            'base_prompt'  # Outra alternativa
-        ]
-
-        base_prompt_data = None
-        base_prompt_path = None
-
-        # Tenta cada caminho até encontrar
-        for path in base_prompt_paths:
-            try:
-                print(f"Tentando buscar prompt base em: {path}")
-                data = FirebaseClient.fetch_data(path, environment)
-                if data:
-                    base_prompt_data = data
-                    base_prompt_path = path
-                    print(f"Prompt base encontrado em: {path}")
-                    break
-            except Exception as e:
-                print(f"Erro ao buscar em {path}: {str(e)}")
-
-        # Busca os contextos específicos - tenta diferentes caminhos
-        context_paths = [
-            'system_prompts/contexts',
-            'prompts/contexts',
-            'contexts'
-        ]
-
-        contexts_data = {}
-        contexts_path = None
-
-        # Tenta cada caminho até encontrar
-        for path in context_paths:
-            try:
-                print(f"Tentando buscar contextos em: {path}")
-                data = FirebaseClient.fetch_data(path, environment)
-                if data:
-                    contexts_data = data
-                    contexts_path = path
-                    print(f"Contextos encontrados em: {path}")
-                    break
-            except Exception as e:
-                print(f"Erro ao buscar contextos em {path}: {str(e)}")
-
-        # Registro de sucesso
-        if base_prompt_data:
-            print(f" Prompt base extraído de: {base_prompt_path}")
-        else:
-            print(" Prompt base não encontrado em nenhum caminho.")
-
-        if contexts_data:
-            print(f" {len(contexts_data)} contextos extraídos de: {contexts_path}")
-            for context_name in contexts_data.keys():
-                print(f"  - {context_name}")
-        else:
-            print(" Nenhum contexto encontrado.")
-
-        # Resultado a ser retornado
-        result = {
-            "base_prompt": base_prompt_data,
-            "base_prompt_path": base_prompt_path,
-            "contexts": contexts_data,
-            "contexts_path": contexts_path
-        }
-
-        print(f"Extração de prompts concluída.")
-        return result
-    except Exception as e:
-        print(f"Erro ao buscar prompts do Firebase: {str(e)}")
-        return {
-            "base_prompt": None,
-            "contexts": {},
-            "error": str(e)
-        }
-
-
-def decode_base64_prompt(base64_string):
-    """Decodifica um prompt codificado em Base64 e limpa caracteres inválidos."""
-    if not base64_string:
-        return "Prompt não encontrado"
-
-    try:
-        # Primeiro tenta importar a função decode_text personalizada
-        try:
-            from utils.base64_utils import decode_text
-            decoded = decode_text(base64_string)
-        except ImportError:
-            # Se não encontrar a função personalizada, usa a implementação padrão
-            base64_bytes = base64_string.encode('utf-8')
-            text_bytes = base64.b64decode(base64_bytes)
-            decoded = text_bytes.decode('utf-8')
-
-        # Limpa o texto para compatibilidade com o Claude
-        return clean_text_for_claude(decoded)
-    except Exception as e:
-        return f"Erro ao decodificar prompt: {str(e)}\nBase64 original: {base64_string[:50]}..."
 
 
 def compile_project(project_path, output_file, ignored_dirs, ignored_files, included_extensions, add_headers=True,
@@ -286,10 +170,10 @@ def compile_project(project_path, output_file, ignored_dirs, ignored_files, incl
             full_content += f"{separator}\n\n"
 
         # Adiciona o conteúdo limpo
-        full_content += clean_text_for_claude(content)
+        full_content += clean_text_for_ai(content)
         full_content += '\n\n'
 
-    final_content = clean_text_for_claude(full_content)
+    final_content = clean_text_for_ai(full_content)
 
     # Escreve o conteúdo no arquivo com codificação UTF-8 sem BOM
     try:

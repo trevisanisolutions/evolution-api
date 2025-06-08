@@ -10,6 +10,7 @@ from services.calendar.calendar_functions import create_appointment, cancel_appo
 from services.core.buffer.buffer_service import BufferService
 from services.core.thread_service import ThreadService
 from services.sec24.registration.registration_service import SEC24UserService
+from utils.date_utils import get_today_formated, get_holidays
 
 logger = logging.getLogger(__name__)
 

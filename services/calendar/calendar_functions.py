@@ -11,6 +11,7 @@ from services.calendar.constants import INTERNAL_DATE_FORMAT, INTERNAL_TIME_FORM
 from services.calendar.utils import parse_date, parse_datetime, find_event, get_event_duration, create_event_body, \
     get_weekday_pt, get_day_time_range
 from utils.tool_response import json_success, json_error
+from utils.date_utils import get_holidays
 
 logger = logging.getLogger(__name__)
 
@@ -39,17 +40,13 @@ def is_slot_available(start, end, events, timezone, user_phone, procedure_name, 
                 if event['extendedProperties']['private'].get('user_phone') == user_phone:
                     return False, "Você já possui um agendamento que coincide com este horário."
 
-                if is_self_attendance:
-                    if event['extendedProperties']['private'].get('procedure') == procedure_name:
-                        same_procedure_count += 1
-                    if not (event['extendedProperties']['private'].get('self_attendance_procedure',"false").lower() == 'true'):
-                        return False, "Profissional já está atendendo outro procedimento."
-                else:
-                    if not (event['extendedProperties']['private'].get('self_attendance_procedure',"false").lower() == 'true'):
-                        return False, "Profissional já está atendendo outro procedimento."
+                if event['extendedProperties']['private'].get('procedure') == procedure_name:
+                    same_procedure_count += 1
+                elif not is_self_attendance and not(event['extendedProperties']['private'].get('self_attendance_procedure',"false").lower() == 'true'):
+                    return False, "Profissional já está atendendo outro procedimento."
         except Exception as e:
             logger.warning(f"[is_slot_available] Erro ao processar evento: {e}")
-    if is_self_attendance and same_procedure_count >= procedure_capacity:
+    if same_procedure_count >= procedure_capacity:
         return False, "Capacidade máxima atingida para esse procedimento."
     return True, None
 
@@ -131,6 +128,10 @@ def check_availability(args):
                 f"Não há horários disponíveis para {procedure_name} com {professional_name} em {date}. Monivo(s): {', '.join(reasons)}")
 
         formatted = [t.replace(":", "h") for t in truly_available_slots]
+        holidays = get_holidays(date_obj.year)
+        for holiday in holidays:
+            if holiday['date'] == date_obj.strftime("%Y-%m-%d"):
+                return json_error(f"A data {date} é um feriado: {holiday['name']}.")
         return json_success(
             f"Horários disponíveis para {procedure_name} com {professional_name} em {date}: {', '.join(formatted)}"
         )

@@ -1,4 +1,7 @@
 import datetime
+from functools import lru_cache
+
+import requests
 
 week_days = {
     0: "segunda-feira",
@@ -27,10 +30,6 @@ months = {
 
 
 def get_today_formated():
-    """
-    Retorna a data atual formatada como 'Dia da semana, dia de mês de ano'.
-    Exemplo: 'Segunda-feira, 1 de janeiro de 2023'.
-    """
     hoje = datetime.datetime.now()
 
     week_day = week_days[hoje.weekday()]
@@ -39,3 +38,10 @@ def get_today_formated():
     year = hoje.year
 
     return f"{week_day.capitalize()}, {day} de {month} de {year}"
+
+@lru_cache(maxsize=3)
+def get_holidays(year: str) ->str:
+    url = f"https://brasilapi.com.br/api/feriados/v1/{year}?estado=RS&municipio=porto_alegre" # TODO: receber parametros de estado e município do assistente
+    response = requests.get(url)
+    return response.json()
+
