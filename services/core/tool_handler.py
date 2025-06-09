@@ -7,10 +7,10 @@ from openai.types.beta.threads import RequiredActionFunctionToolCall
 from dao.firebase_client import FirebaseClient
 from services.calendar.calendar_functions import create_appointment, cancel_appointment, reschedule_appointment, \
     check_availability, get_user_appointments
+from services.core.agent_service import AgentService
 from services.core.buffer.buffer_service import BufferService
 from services.core.thread_service import ThreadService
 from services.sec24.registration.registration_service import SEC24UserService
-from utils.date_utils import get_today_formated, get_holidays
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,8 @@ class ToolHandler:
         if not context_summary:
             return ToolHandler._build_error_response(f"Parâmetro 'context_summary' ausente.")
         path = f"establishments/{business_phone}/users/{user_phone}/threads/{new_agent_id}"
-        ThreadService.create_new_thread(business_phone, new_agent_id, path, user_phone)
+        assistant_hash_instructions = AgentService.get_assistant_hash_instructions(business_phone, new_agent_id)
+        ThreadService.create_new_thread(business_phone, new_agent_id, path, user_phone, assistant_hash_instructions)
         BufferService.add_to_buffer(business_phone, user_phone, f"⚠️ CONTEXTO AUTOMÁTICO: {context_summary}",
                                     instance_name)
         BufferService.add_to_buffer(business_phone, user_phone, "Olá", instance_name)
