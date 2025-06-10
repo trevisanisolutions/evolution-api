@@ -10,8 +10,8 @@ from services.calendar.constants import INTERNAL_DATE_FORMAT, INTERNAL_TIME_FORM
     DEFAULT_PROCEDURE_CAPACITY
 from services.calendar.utils import parse_date, parse_datetime, find_event, get_event_duration, create_event_body, \
     get_weekday_pt, get_day_time_range
-from utils.tool_response import json_success, json_error
 from utils.date_utils import get_holidays
+from utils.tool_response import json_success, json_error, json_partial_success
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,9 @@ def is_slot_available(start, end, events, timezone, user_phone, procedure_name, 
 
                 if event['extendedProperties']['private'].get('procedure') == procedure_name:
                     same_procedure_count += 1
-                elif not is_self_attendance and not(event['extendedProperties']['private'].get('self_attendance_procedure',"false").lower() == 'true'):
+                elif not is_self_attendance and not (
+                        event['extendedProperties']['private'].get('self_attendance_procedure',
+                                                                   "false").lower() == 'true'):
                     return False, "Profissional já está atendendo outro procedimento."
         except Exception as e:
             logger.warning(f"[is_slot_available] Erro ao processar evento: {e}")
@@ -72,7 +74,11 @@ def check_availability(args):
 
         schedules_today = [ws for ws in work_schedule if ws["weekday"].lower() == weekday_pt.lower()]
         if not schedules_today:
-            return json_error(f"{professional_name} não trabalha em {weekday_pt}, {date}.")
+            return {
+                "success": False,
+                "message": f"{professional_name} não trabalha em {weekday_pt}, {date}.",
+                "slot": {"date": date}
+            }
 
         def generate_flexible_time_slots(start: str, end: str):
             time_format = "%H:%M"
@@ -124,38 +130,60 @@ def check_availability(args):
                 reasons.append(reason)
 
         if not truly_available_slots:
-            return json_error(
-                f"Não há horários disponíveis para {procedure_name} com {professional_name} em {date}. Monivo(s): {', '.join(reasons)}")
+            return {
+                "success": False,
+                "message": f"Não há horários disponíveis para {procedure_name} com {professional_name} em {date}. Monivo(s): {', '.join(reasons)}",
+                "slot": {"date": date}
+            }
 
         formatted = [t.replace(":", "h") for t in truly_available_slots]
         holidays = get_holidays(date_obj.year)
         for holiday in holidays:
             if holiday['date'] == date_obj.strftime("%Y-%m-%d"):
-                return json_error(f"A data {date} é um feriado: {holiday['name']}.")
-        return json_success(
-            f"Horários disponíveis para {procedure_name} com {professional_name} em {date}: {', '.join(formatted)}"
-        )
+                return {
+                    "success": False,
+                    "message": f"A data {date} é um feriado: {holiday['name']}.",
+                    "slot": {"date": date}
+                }
+        return {
+            "success": True,
+            "message": f"Horários disponíveis para {procedure_name} com {professional_name} em {date}: {', '.join(formatted)}",
+            "slot": {"date": date}
+        }
 
     except ValueError as ve:
         logger.error(f"[check_availability] Erro de data: {ve}")
-        return json_error(f"Formato inválido de data. Use DD/MM/AAAA. Detalhes: {ve}")
+        return {
+            "success": False,
+            "message": f"Formato inválido de data. Use DD/MM/AAAA. Detalhes: {ve}",
+            "slot": {"date": date}
+        }
     except HttpError as he:
         logger.error(f"[check_availability] Erro na API do Google Calendar: {he}")
-        return json_error(f"Ocorreu um erro ao consultar a agenda: {he}")
+        return {
+            "success": False,
+            "message": f"Ocorreu um erro ao consultar a agenda: {he}",
+            "slot": {"date": date}
+        }
     except Exception as e:
         logger.error(f"[check_availability] Erro inesperado: {e}")
-        return json_error(f"Ocorreu um erro inesperado: {e}")
+        return {
+            "success": False,
+            "message": f"Ocorreu um erro inesperado: {e}",
+            "slot": {"date": date}
+        }
 
 
-def create_appointment(args, user_phone: str):
+def create_appointment(args):
     address = args.get("address")
+    user_phone = args.get("user_phone")
     professional_name = args.get("professional_name")
     professional_calendar_id = args.get("professional_calendar_id")
     date = args.get("date")
     time = args.get("time")
     procedure = args.get("procedure")
     user_name = args.get("user_name")
-    self_attendance_procedure = str(args.get("self_attendance_procedure","false")).lower() == "true"
+    self_attendance_procedure = str(args.get("self_attendance_procedure", "false")).lower() == "true"
     procedure_duration_minutes = args.get("procedure_duration_minutes", DEFAULT_APPOINTMENT_DURATION)
     procedure_capacity = int(args.get("procedure_capacity", DEFAULT_PROCEDURE_CAPACITY))
 
@@ -186,8 +214,11 @@ def create_appointment(args, user_phone: str):
             procedure_capacity
         )
         if not is_available:
-            return json_error(
-                f"O horário {date} às {time} não está disponível para {procedure}. Motivo: {reason}. Por favor, escolha outro horário.")
+            return {
+                "success": False,
+                "message": f"{date} às {time}: {reason}",
+                "slot": {"date": date, "time": time}
+            }
 
         event = create_event_body(
             professional_name,
@@ -202,17 +233,24 @@ def create_appointment(args, user_phone: str):
         )
         service.events().insert(calendarId=professional_calendar_id, body=event).execute()
 
-        return json_success(
-            f"Agendamento confirmado! Procedimento: {procedure}, Profissional: {professional_name}, Data: {date}, Horário: {time}, Nome: {user_name}"
-        )
+        return {
+            "success": True,
+            "message": f"{date} às {time}: Agendamento confirmado para {procedure} com {professional_name}.",
+            "slot": {"date": date, "time": time}
+        }
     except Exception as e:
         logger.error(f"[create_appointment] Erro: {e}")
-        return json_error(f"Erro ao criar agendamento: {e}")
+        return {
+            "success": False,
+            "message": f"{date} às {time}: Erro ao agendar - {e}",
+            "slot": {"date": date, "time": time}
+        }
 
 
-def cancel_appointment(args, user_phone: str):
+def cancel_appointment(args, is_admin):
     professional_name = args.get("professional_name")
     procedure = args.get("procedure")
+    user_phone = args.get("user_phone")
     professional_calendar_id = args.get("professional_calendar_id")
     date = args.get("date")
     time = args.get("time")
@@ -223,26 +261,42 @@ def cancel_appointment(args, user_phone: str):
     try:
         event_to_cancel = find_event(service, professional_calendar_id, date, time, timezone, procedure)
         if not event_to_cancel:
-            return json_error(
-                f"Não encontrei um agendamento para {professional_name} em {date} às {time}. Verifique se os dados estão corretos.")
+            return {
+                "success": False,
+                "message": f"Não encontrei um agendamento para {professional_name} em {date} às {time}. Verifique se os dados estão corretos.",
+                "slot": {"date": date, "time": time}
+            }
 
         if user_phone and 'extendedProperties' in event_to_cancel and 'private' in event_to_cancel[
             'extendedProperties']:
             event_user_phone = event_to_cancel['extendedProperties']['private'].get('user_phone')
-            if event_user_phone and event_user_phone != user_phone:
-                return json_error("Desculpe, somente a pessoa que fez o agendamento pode cancelá-lo.")
+            if event_user_phone and event_user_phone != user_phone and not is_admin:
+                return {
+                    "success": False,
+                    "message": "Desculpe, somente a pessoa que fez o agendamento pode cancelá-lo.",
+                    "slot": {"date": date, "time": time}
+                }
 
         event_id = event_to_cancel['id']
         service.events().delete(calendarId=professional_calendar_id, eventId=event_id).execute()
-        return json_success(f"O agendamento com {professional_name} em {date} às {time} foi cancelado com sucesso.")
+        return {
+            "success": True,
+            "message": f"O agendamento com {professional_name} em {date} às {time} foi cancelado com sucesso.",
+            "slot": {"date": date, "time": time}
+        }
 
     except Exception as e:
         logger.error(f"[cancel_appointment] Erro: {e}")
-        return json_error(f"Erro ao cancelar agendamento: {e}")
+        return {
+            "success": False,
+            "message": f"Erro ao cancelar agendamento: {e}",
+            "slot": {"date": date, "time": time}
+        }
 
 
-def reschedule_appointment(args, user_phone: str):
+def reschedule_appointment(args, is_admin):
     professional_name = args.get("professional_name")
+    user_phone = args.get("user_phone")
     professional_calendar_id = args.get("professional_calendar_id")
     current_date = args.get("current_date")
     current_time = args.get("current_time")
@@ -256,15 +310,29 @@ def reschedule_appointment(args, user_phone: str):
     try:
         current_event = find_event(service, professional_calendar_id, current_date, current_time, timezone, procedure)
         if not current_event:
-            return json_error(
-                f"Não encontrei um agendamento para {professional_name} em {current_date} às {current_time}.")
+            return {
+                "success": False,
+                "message": f"Não encontrei um agendamento para {professional_name} em {current_date} às {current_time}.",
+                "slot": {
+                    "from": {"date": current_date, "time": current_time},
+                    "to": {"date": new_date, "time": new_time}
+                }
+            }
 
         if user_phone and 'extendedProperties' in current_event and 'private' in current_event['extendedProperties']:
             event_user_phone = current_event['extendedProperties']['private'].get('user_phone')
-            if event_user_phone and event_user_phone != user_phone:
-                return json_error("Desculpe, somente a pessoa que fez o agendamento pode reagendá-lo.")
+            if event_user_phone and event_user_phone != user_phone and not is_admin:
+                return {
+                    "success": False,
+                    "message": "Desculpe, somente a pessoa que fez o agendamento pode reagendá-lo.",
+                    "slot": {
+                        "from": {"date": current_date, "time": current_time},
+                        "to": {"date": new_date, "time": new_time}
+                    }
+                }
 
-        self_attendance_procedure = current_event['extendedProperties']['private'].get('self_attendance_procedure',"false").lower() == 'true'
+        self_attendance_procedure = current_event['extendedProperties']['private'].get('self_attendance_procedure',
+                                                                                       "false").lower() == 'true'
         procedure_capacity = int(
             current_event['extendedProperties']['private'].get('procedure_capacity', DEFAULT_PROCEDURE_CAPACITY))
 
@@ -291,8 +359,14 @@ def reschedule_appointment(args, user_phone: str):
             procedure_capacity
         )
         if not is_available:
-            return json_error(
-                f"O novo horário ({new_date} às {new_time}) não está disponível. Motivo: {reason}. Escolha outro horário.")
+            return {
+                "success": False,
+                "message": f"O novo horário ({new_date} às {new_time}) não está disponível. Motivo: {reason}. Escolha outro horário.",
+                "slot": {
+                    "from": {"date": current_date, "time": current_time},
+                    "to": {"date": new_date, "time": new_time}
+                }
+            }
 
         current_event['start']['dateTime'] = new_start_local.astimezone(tz.utc).isoformat()
         current_event['end']['dateTime'] = new_end_local.astimezone(tz.utc).isoformat()
@@ -301,15 +375,31 @@ def reschedule_appointment(args, user_phone: str):
 
         service.events().update(calendarId=professional_calendar_id, eventId=current_event['id'],
                                 body=current_event).execute()
-        return json_success(f"Reagendamento realizado com sucesso para {new_date} às {new_time}.")
+        return {
+            "success": True,
+            "message": f"Reagendamento realizado com sucesso para {new_date} às {new_time}.",
+            "slot": {
+                "from": {"date": current_date, "time": current_time},
+                "to": {"date": new_date, "time": new_time}
+            }
+        }
 
     except Exception as e:
         logger.error(f"[reschedule_appointment] Erro: {e}")
-        return json_error(f"Erro ao reagendar: {e}")
+        return {
+            "success": False,
+            "message": f"Erro ao reagendar: {e}",
+            "slot": {
+                "from": {"date": current_date, "time": current_time},
+                "to": {"date": new_date, "time": new_time}
+            }
+        }
 
 
-def get_user_appointments(args, user_phone: str):
+def get_appointments(args):
     professional_name = args.get("professional_name")
+    user_phone = args.get("user_phone")
+    range_days = int(args.get("range_days", 15))
     professional_calendar_id = args.get("professional_calendar_id")
 
     service = get_calendar_service()
@@ -317,7 +407,7 @@ def get_user_appointments(args, user_phone: str):
 
     try:
         today = datetime.now(timezone).date()
-        end_date = today + timedelta(days=15)
+        end_date = today + timedelta(days=range_days)
 
         start_utc = timezone.localize(datetime.combine(today, datetime.min.time())).astimezone(tz.utc)
         end_utc = timezone.localize(datetime.combine(end_date, datetime.max.time())).astimezone(tz.utc)
@@ -334,7 +424,7 @@ def get_user_appointments(args, user_phone: str):
         user_appointments = []
         for event in events:
             props = event.get('extendedProperties', {}).get('private', {})
-            if props.get('user_phone') == user_phone:
+            if not user_phone or props.get('user_phone') == user_phone:
                 start_time = event['start'].get('dateTime')
                 if not start_time:
                     continue
@@ -354,14 +444,103 @@ def get_user_appointments(args, user_phone: str):
         user_appointments.sort(key=lambda x: (x['date'], x['time']))
 
         if not user_appointments:
-            return json_error("O usuário não tem agendamentos para os próximos 15 dias.")
-
-        response = "Próximos agendamentos do usuário:\n\n"
+            return {
+                "success": False,
+                "message": "O usuário não tem agendamentos para os próximos 15 dias."
+            }
+        user_resp = "do usuário" if user_phone else ""
+        response = f"Próximos agendamentos {user_resp} nos próximos 15 dias:\n\n"
         for appt in user_appointments:
             response += f"📅 {appt['date']} às {appt['time']} - {appt['procedure']} com {appt['professional']}\n"
 
-        return json_success(response)
+        return {
+            "success": True,
+            "message": f"{response}",
+        }
 
     except Exception as e:
         logger.error(f"[get_user_appointments] Erro: {e}")
-        return json_error(f"Erro ao buscar agendamentos: {e}")
+        return {
+            "success": False,
+            "message": f"Erro ao buscar agendamentos: {e}",
+        }
+
+
+def create_appointments(args):
+    slots = args.get("slots", [])
+    results = []
+
+    for slot in slots:
+        slot_args = {**args, **slot}
+        result = create_appointment(slot_args)
+        results.append(result)
+
+    successes = [r for r in results if r["success"]]
+    errors = [r for r in results if not r["success"]]
+
+    if not errors:
+        return json_success(results)
+    elif not successes:
+        return json_error(results)
+    else:
+        return json_partial_success(results)
+
+
+def check_availabilities(args):
+    slots = args.get("slots", [])
+    results = []
+
+    for slot in slots:
+        slot_args = {**args, **slot}
+        result = check_availability(slot_args)
+        results.append(result)
+
+    successes = [r for r in results if r["success"]]
+    errors = [r for r in results if not r["success"]]
+
+    if not errors:
+        return json_success(results)
+    elif not successes:
+        return json_error(results)
+    else:
+        return json_partial_success(results)
+
+
+def cancel_appointments(args, is_admin=False):
+    slots = args.get("slots", [])
+    results = []
+
+    for slot in slots:
+        slot_args = {**args, **slot}
+        result = cancel_appointment(slot_args, is_admin)
+        results.append(result)
+
+    successes = [r for r in results if r["success"]]
+    errors = [r for r in results if not r["success"]]
+
+    if not errors:
+        return json_success(results)
+    elif not successes:
+        return json_error(results)
+    else:
+        return json_partial_success(results)
+
+
+def reschedule_appointments(args, is_admin=False):
+    slots = args.get("slots", [])
+    results = []
+
+    for slot in slots:
+        slot_args = {**args, **slot}
+        result = reschedule_appointment(slot_args, is_admin)
+        results.append(result)
+
+    successes = [r for r in results if r["success"]]
+    errors = [r for r in results if not r["success"]]
+
+    if not errors:
+        return json_success(results)
+    elif not successes:
+        return json_error(results)
+    else:
+        return json_partial_success(results)

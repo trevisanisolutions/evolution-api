@@ -5,8 +5,9 @@ import time
 from openai.types.beta.threads import RequiredActionFunctionToolCall
 
 from dao.firebase_client import FirebaseClient
-from services.calendar.calendar_functions import create_appointment, cancel_appointment, reschedule_appointment, \
-    check_availability, get_user_appointments
+from services.calendar.calendar_functions import get_appointments, check_availabilities, reschedule_appointments, \
+    cancel_appointments, \
+    create_appointments
 from services.core.agent_service import AgentService
 from services.core.buffer.buffer_service import BufferService
 from services.core.thread_service import ThreadService
@@ -29,20 +30,20 @@ class ToolHandler:
             args = json.loads(tool_call.function.arguments) if isinstance(tool_call.function.arguments,
                                                                           str) else tool_call.function.arguments
             match tool_name:
-                case "criar_agendamento":
-                    result = create_appointment(args, user_phone)
+                case "criar_agendamentos":
+                    result = create_appointments(args)
 
-                case "cancelar_agendamento":
-                    result = cancel_appointment(args, user_phone)
+                case "cancelar_agendamentos":
+                    result = cancel_appointments(args, business_phone == user_phone)
 
-                case "reagendar_agendamento":
-                    result = reschedule_appointment(args, user_phone)
+                case "reagendar_agendamentos":
+                    result = reschedule_appointments(args, business_phone == user_phone)
 
-                case "verificar_disponibilidade":
-                    result = check_availability(args)
+                case "verificar_disponibilidades":
+                    result = check_availabilities(args)
 
-                case "verificar_agendamentos_usuario":
-                    result = get_user_appointments(args, user_phone)
+                case "verificar_agendamentos":
+                    result = get_appointments(args)
 
                 case "registrar_usuario":
                     result = SEC24UserService.register_user(args)

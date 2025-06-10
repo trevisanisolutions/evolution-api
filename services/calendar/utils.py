@@ -81,10 +81,15 @@ def create_event_body(professional_name_full, procedure, procedure_capacity, sel
                       date_end, user_name,
                       user_phone,
                       establishment_address):
+    import pytz
+
+    timezone = pytz.timezone("America/Sao_Paulo")
+    local_start = date_start.astimezone(timezone)
+    formatted_date = local_start.strftime("%d/%m/%y às %H:%M")
     return {
-        'summary': f'{procedure} - {user_name}',
-        'location': establishment_address,
+        'summary': f'{formatted_date} - {user_name} - {procedure}',
         'description': f'Agendamento para {procedure} com {professional_name_full}. Cliente: {user_name}, Contato: {user_phone}',
+        'location': establishment_address,
         'start': {
             'dateTime': date_start.isoformat(),
             'timeZone': 'UTC',
@@ -137,7 +142,8 @@ def find_event(service, calendar_id, date_str, time_str, timezone, procedure):
                             ('extendedProperties' in e and
                              'private' in e['extendedProperties'] and
                              e['extendedProperties']['private'].get('procedure') == procedure)]
-
+        if not procedure_events:
+            return None
         found_event = procedure_events[0]
         start_time_found = found_event['start'].get('dateTime')
 

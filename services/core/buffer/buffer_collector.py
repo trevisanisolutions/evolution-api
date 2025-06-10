@@ -16,7 +16,7 @@ ZOMBIE_BUFFER_TIMEOUT_SECONDS = 300
 logger = logging.getLogger(__name__)
 
 
-def _should_ignore_buffer(buffer: dict, now: int) -> bool:
+def _should_ignore_buffer(user_phone: str, buffer: dict, now: int) -> bool:
     buffer_replica_id = buffer.get("replica_id", "")
     if REPLICA_ID != buffer_replica_id:
         return True
@@ -30,7 +30,7 @@ def _should_ignore_buffer(buffer: dict, now: int) -> bool:
             logger.warning(
                 f"[Buffer Force Available] Presença travada ({presence}) há {presence_age}s, forçando disponível")
             buffer["presence"] = "available"
-            FirebaseClient.save_data(f"message_buffers/{buffer['user_phone']}", buffer)
+            FirebaseClient.save_data(f"message_buffers/{user_phone}", buffer)
     if presence_age < PRESENCE_LAST_UPDATE_MINIMUM_FOR_PROCESS_SECONDS:
         logger.info(f"[Buffer Ignore] Ignorando porque presence age={presence_age}s (esperado >= 5s)")
         return True
@@ -66,7 +66,7 @@ def _check_buffers():
     buffers = BufferService.get_all_buffers()
 
     for user_phone, buffer in buffers.items():
-        if _should_ignore_buffer(buffer, now):
+        if _should_ignore_buffer(user_phone, buffer, now):
             continue
         _process_buffer(user_phone, buffer)
 

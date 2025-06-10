@@ -23,6 +23,10 @@ class WhatsappService:
     def process_incoming_message(incoming: MessageUpsertDTO):
         logger.info(
             f"[process_incoming_message] {incoming.instance_name} -> {incoming.remote_jid} -> {incoming.user_msg}")
+        if incoming.business_phone == incoming.user_phone:
+            mark_message_as_read(incoming.instance_name, incoming.remote_jid, incoming.message_id)
+            return BufferService.add_to_buffer(incoming.business_phone, incoming.user_phone, incoming.user_msg,
+                                               incoming.instance_name)
         if incoming.from_me:
             return WhatsappService._handle_attendant_message(incoming.business_phone, incoming.user_msg,
                                                              incoming.user_phone)
@@ -50,12 +54,26 @@ class WhatsappService:
     @staticmethod
     def process_user_message(business_phone: str, user_message: str, user_phone: str, instance_name: str):
         logger.info(f"[process_message] {user_phone} -> {business_phone} -> {instance_name} -> {user_message}")
-        agent_id = FirebaseClient.fetch_data(
-            f"establishments/{business_phone}/users/{user_phone}/current_agent") or "main_agent"
+        agent_id = WhatsappService.get_agent_id(business_phone, user_phone)
+        if not agent_id:
+            is_admin = "Sim" if business_phone == user_phone else "Não"
+            logger.warning(
+                f"[process_message] Nenhum agente encontrado para {business_phone}/{user_phone} (ADM:{is_admin})")
+            return "*_Sistema_*: Nenhum agente disponível no momento."
         response = OpenaiService.get_ai_response(business_phone, user_message, user_phone, agent_id, instance_name)
         ConversationHistoryService.append_message(business_phone, user_phone, "assistant", response, agent_id)
         agent_config = AgentService.get_agent_config(business_phone, agent_id)
         return f"*_{agent_config.get('name')}_*: {response}"
+
+    @staticmethod
+    def get_agent_id(business_phone, user_phone):
+        if business_phone == user_phone:
+            if FirebaseClient.fetch_data(f"establishments/{business_phone}/agents/adm_agent"):
+                return "adm_agent"
+            else:
+                return None
+        return FirebaseClient.fetch_data(
+            f"establishments/{business_phone}/users/{user_phone}/current_agent") or "main_agent"
 
     @staticmethod
     def send_evolution_response(instance_name, to_number, message_text):
