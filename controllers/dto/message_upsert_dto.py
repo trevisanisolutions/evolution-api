@@ -16,6 +16,7 @@ class MessageUpsertDTO:
         self.sender = payload.get("sender", "")
         self.business_phone = self.sender.split("@")[0]
         self.user_msg = self._extract_message()
+        self.user_push_name = self.data.get("pushName", "Desconhecido")
 
     def _extract_message(self):
         if self.message_type == "conversation":

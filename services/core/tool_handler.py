@@ -59,6 +59,7 @@ class ToolHandler:
 
                 case _:
                     result = {"message": f"Tool '{tool_name}' not supported."}
+            logger.info(f"[toll_response]: {instance_name} -> {user_phone} -> {result}")
             return {"tool_call_id": tool_call.id, "output": json.dumps(result)}
 
 

@@ -23,6 +23,8 @@ class WhatsappService:
     def process_incoming_message(incoming: MessageUpsertDTO):
         logger.info(
             f"[process_incoming_message] {incoming.instance_name} -> {incoming.remote_jid} -> {incoming.user_msg}")
+        logger.info(
+            f"[incoming_message] {incoming.instance_name} -> {incoming.user_push_name} -> {incoming.user_msg}")
         if incoming.business_phone == incoming.user_phone:
             mark_message_as_read(incoming.instance_name, incoming.remote_jid, incoming.message_id)
             return BufferService.add_to_buffer(incoming.business_phone, incoming.user_phone, incoming.user_msg,
@@ -61,6 +63,7 @@ class WhatsappService:
                 f"[process_message] Nenhum agente encontrado para {business_phone}/{user_phone} (ADM:{is_admin})")
             return "*_Sistema_*: Nenhum agente disponível no momento."
         response = OpenaiService.get_ai_response(business_phone, user_message, user_phone, agent_id, instance_name)
+        logger.info(f"[response] {user_phone} -> {instance_name} -> {response}")
         ConversationHistoryService.append_message(business_phone, user_phone, "assistant", response, agent_id)
         agent_config = AgentService.get_agent_config(business_phone, agent_id)
         return f"*_{agent_config.get('name')}_*: {response}"
