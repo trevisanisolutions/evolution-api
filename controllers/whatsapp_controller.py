@@ -55,6 +55,9 @@ async def handle_evolution_whatsapp(request: Request):
         incoming = MessageUpsertDTO(payload)
         logger.info(
             f"[handle_evolution_whatsapp] {incoming.user_phone if not incoming.from_me else '[Atendente Humano]'} → {incoming.instance_name if not incoming.from_me else incoming.user_phone}: {incoming.user_msg}")
+        if not incoming.user_msg:
+            logger.warning(f"[handle_evolution_whatsapp] Mensagem vazia recebida de {incoming.user_phone}")
+            return JSONResponse(content={"status": "success"})
         if len(incoming.user_msg) > MAX_MESSAGE_LENGTH:
             user_resp = (
                 "Opa! Sua mensagem é muito longa para processarmos de uma vez. "

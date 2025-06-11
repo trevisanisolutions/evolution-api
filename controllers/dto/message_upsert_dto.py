@@ -19,6 +19,12 @@ class MessageUpsertDTO:
         self.user_push_name = self.data.get("pushName", "Desconhecido")
 
     def _extract_message(self):
+        ignored_type = {
+            "imageMessage", "videoMessage", "documentMessage",
+            "stickerMessage", "reactionMessage", "locationMessage", "liveLocationMessage", "ptvMessage"
+        }
+        if self.message_type in ignored_type:
+            return None
         if self.message_type == "conversation":
             return self.message_data.get("conversation", "").strip()
         elif self.message_type == "extendedTextMessage":
