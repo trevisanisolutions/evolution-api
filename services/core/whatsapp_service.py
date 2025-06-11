@@ -24,7 +24,7 @@ class WhatsappService:
         logger.info(
             f"[process_incoming_message] {incoming.instance_name} -> {incoming.remote_jid} -> {incoming.user_msg}")
         logger.info(
-            f"[incoming_message] {incoming.instance_name} -> {incoming.user_push_name} -> {incoming.user_msg}")
+            f"[incoming_message] {incoming.instance_name} -> {incoming.user_phone} -> {incoming.user_push_name} -> {incoming.user_msg}")
         if incoming.business_phone == incoming.user_phone:
             mark_message_as_read(incoming.instance_name, incoming.remote_jid, incoming.message_id)
             return BufferService.add_to_buffer(incoming.business_phone, incoming.user_phone, incoming.user_msg,
