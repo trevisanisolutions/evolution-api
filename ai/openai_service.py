@@ -70,7 +70,7 @@ class OpenaiService:
                     tool_outputs=result
                 )
             count += 1
-        if run.status in ["failed", "cancelled"]:
+        if run.status in ["failed", "cancelled", "expired"]:
             logger.warning(f"[AI] Run falhou ou foi cancelada.")
             run = OpenaiService.execute_run(assistant_id, business_phone, client, instance_name, thread_id, user_phone)
         return run
