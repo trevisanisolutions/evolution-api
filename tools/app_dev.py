@@ -1,9 +1,8 @@
 from dotenv import load_dotenv
 
-from dao.firebase_client import init_firebase, FirebaseClient
-from services.core.whatsapp_service import WhatsappService
+from core.dao.firebase_client import init_firebase, FirebaseClient
+from core.services.process_message_service import ProcessMessageService
 
-# Carrega .env e inicializa Firebase
 load_dotenv(override=True)
 init_firebase()
 
@@ -56,7 +55,7 @@ while True:
     print("➡️ Processando")
 
     try:
-        response = WhatsappService.process_user_message(business_phone, msg, user_phone, instance_name)
+        response = ProcessMessageService.process_user_message(business_phone, msg, user_phone, instance_name)
         print(f"🤖 {COLORS['Amarelo']}IA: {COLORS['Ciano']}{response}{COLORS['Reset']}")
     except Exception as e:
         print(f"❌ Erro ao processar: {str(e)}")

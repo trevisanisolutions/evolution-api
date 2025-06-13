@@ -2,7 +2,7 @@
 .env
 *.env
 .env.*
-dao/firebase_credentials_*.json
+core/dao/firebase_credentials_*.json
 
 # Arquivos de byte compilado Python
 __pycache__/

@@ -1,33 +1,33 @@
-from controllers.admin_controller import admin_router
-from utils.config import REPLICA_ID
-from utils.logger_config import setup_logger
-
-setup_logger()
-
+import logging
 import os
 import sys
-import logging
+from contextlib import asynccontextmanager
+
+import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from contextlib import asynccontextmanager
-import uvicorn
 
-from controllers.health_controller import health_router
-from controllers.whatsapp_controller import whatsapp_router
-from dao.firebase_client import init_firebase, FirebaseClient
-from services.core.buffer.buffer_collector import BufferCollector
+from core.controllers.admin_controller import admin_router
+from core.controllers.health_controller import health_router
+from core.controllers.whatsapp_controller import whatsapp_router
+from core.dao.firebase_client import init_firebase, FirebaseClient
+from core.services.buffer.buffer_collector import BufferCollector
+from core.utils.constants import REPLICA_ID, get_environment
+from core.utils.logger_config import setup_logger
+
+setup_logger()
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info(f"Iniciando instância com REPLICA_ID = {REPLICA_ID}")
+    logger.debug(f"Iniciando instância com REPLICA_ID = {REPLICA_ID}")
     init_firebase()
     FirebaseClient.get_reference('healthcheck').set({"status": "ok", "timestamp": {".sv": "timestamp"}})
-    logger.info("Firebase inicializado com sucesso.")
+    logger.debug("Firebase inicializado com sucesso.")
     BufferCollector().start()
-    logger.info("BufferCollector inicializado com sucesso.")
+    logger.debug("BufferCollector inicializado com sucesso.")
     yield
 
 
@@ -38,7 +38,6 @@ app.include_router(whatsapp_router)
 app.include_router(admin_router)
 
 if __name__ == "__main__":
-    print("Carregando variáveis de ambiente...")
     load_dotenv(override=True)
 
     required_vars = [
@@ -53,11 +52,10 @@ if __name__ == "__main__":
             print(f"[ERRO] Variável de ambiente {var} não encontrada.")
             sys.exit(1)
 
-    environment = os.environ.get("RAILWAY_ENVIRONMENT_NAME")
     port = int(os.environ.get("PORT", 5000))
 
-    logger.info(f"Iniciando aplicação em ambiente: {environment}")
-    logger.info(f"Iniciando FastAPI na porta {port}")
+    logger.debug(f"Iniciando aplicação em ambiente: {get_environment()}")
+    logger.debug(f"Iniciando FastAPI na porta {port}")
 
     uvicorn.run(
         app=app,
