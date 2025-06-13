@@ -12,9 +12,11 @@ from services.core.buffer.buffer_service import BufferService
 from services.core.conversation_history_service import ConversationHistoryService
 from utils.whatsapp_chat_utils import mark_message_as_read
 
+AGENT_LAST_USED_TIMEOUT = 5 * 60 * 60
+
 logger = logging.getLogger(__name__)
 
-HUMAN_ATTENDANCE_LAST_UPDATE_LIMIT = 900
+HUMAN_ATTENDANCE_LAST_UPDATE_LIMIT = 15 * 60
 
 
 class WhatsappService:
@@ -62,6 +64,11 @@ class WhatsappService:
             logger.warning(
                 f"[process_message] Nenhum agente encontrado para {business_phone}/{user_phone} (ADM:{is_admin})")
             return "*_Sistema_*: Nenhum agente disponível no momento."
+        else:
+            FirebaseClient.update_data(
+                f"establishments/{business_phone}/users/{user_phone}/threads/{agent_id}",
+                {"agent_last_used_at": int(time.time())}
+            )
         response = OpenaiService.get_ai_response(business_phone, user_message, user_phone, agent_id, instance_name)
         logger.info(f"[response] {user_phone} -> {instance_name} -> {response}")
         ConversationHistoryService.append_message(business_phone, user_phone, "assistant", response, agent_id)
@@ -71,12 +78,23 @@ class WhatsappService:
     @staticmethod
     def get_agent_id(business_phone, user_phone):
         if business_phone == user_phone:
-            if FirebaseClient.fetch_data(f"establishments/{business_phone}/agents/adm_agent"):
-                return "adm_agent"
+            has_admin = FirebaseClient.fetch_data(f"establishments/{business_phone}/agents/adm_agent")
+            return "adm_agent" if has_admin else None
+        current_agent = FirebaseClient.fetch_data(
+            f"establishments/{business_phone}/users/{user_phone}/current_agent")
+        if current_agent:
+            current_agent_data = FirebaseClient.fetch_data(
+                f"establishments/{business_phone}/users/{user_phone}/threads/{current_agent}")
+            agent_last_used_at = current_agent_data.get("agent_last_used_at", 0)
+            if current_agent and agent_last_used_at and (
+                    int(time.time()) - agent_last_used_at < AGENT_LAST_USED_TIMEOUT):
+                return current_agent
             else:
-                return None
-        return FirebaseClient.fetch_data(
-            f"establishments/{business_phone}/users/{user_phone}/current_agent") or "main_agent"
+                logger.warning(
+                    f"[get_agent_id] Timeout utilização de agente {current_agent} para {business_phone}/{user_phone}, ecaminhando para main_agent")
+                return "main_agent"
+        else:
+            return "main_agent"
 
     @staticmethod
     def send_evolution_response(instance_name, to_number, message_text):

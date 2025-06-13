@@ -11,7 +11,7 @@ from utils.whatsapp_chat_utils import send_typing_signal
 
 PRESENCE_LAST_UPDATE_LIMIT_SECONDS = 60
 PRESENCE_LAST_UPDATE_MINIMUM_FOR_PROCESS_SECONDS = 5
-ZOMBIE_BUFFER_TIMEOUT_SECONDS = 300
+ZOMBIE_BUFFER_TIMEOUT_SECONDS = 5 * 60
 
 logger = logging.getLogger(__name__)
 
@@ -42,10 +42,10 @@ def _should_ignore_buffer(user_phone: str, buffer: dict, now: int) -> bool:
 def _process_buffer(user_phone: str, buffer: dict):
     token = set_trace_id()
     logger.info(f"[_process_buffer] {user_phone} -> {buffer}")
-    BufferService.clear_buffer(user_phone)
     messages = buffer.get("messages", [])
     if not messages:
         return
+    BufferService.clear_buffer(user_phone)
     instance_name = buffer.get("instance_name")
     business_phone = buffer.get("establishment_phone")
     send_typing_signal(instance_name, user_phone)
@@ -75,7 +75,7 @@ def _check_zombie_buffers():
     logger.info(f"[_check_zombie_buffers] Verificando buffers zumbis...")
     now = int(time.time())
 
-    buffers = BufferService.get_all_buffers()  # Retorna um dicionário {user_phone: buffer_data}
+    buffers = BufferService.get_all_buffers()
 
     for user_phone, buffer in buffers.items():
         replica_id_last_updated = buffer.get("replica_id_last_updated", 0)
