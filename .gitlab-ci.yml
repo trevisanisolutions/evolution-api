@@ -35,7 +35,7 @@ deploy_homolog:
     - echo "Verificando saúde da aplicação..."
     - |
       HEALTH_URL="$HEALTH_URL_HOMOLOG"
-      MAX_RETRIES=3
+      MAX_RETRIES=10
       RETRY_DELAY=10
       
       RETRY_COUNT=1
@@ -87,7 +87,7 @@ deploy_production:
     - sleep 30
     - echo "Verificando saúde da aplicação..."
     - |
-      MAX_RETRIES=3
+      MAX_RETRIES=10
       RETRY_DELAY=10
       
       RETRY_COUNT=1
