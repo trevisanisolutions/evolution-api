@@ -33,6 +33,9 @@ class IncomingService:
                 return IncomingService._handle_attendant_message(incoming.instance_name, incoming.business_phone,
                                                                  incoming.user_msg,
                                                                  incoming.user_phone)
+
+            ConversationHistoryService.append_message(incoming.business_phone, incoming.user_phone,
+                                                      "[Atendente Humano]", incoming.user_msg)
             return BufferService.add_to_buffer(incoming.business_phone, incoming.user_phone, incoming.user_msg,
                                                incoming.instance_name)
 
