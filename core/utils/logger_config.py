@@ -25,7 +25,7 @@ class ShortNameFormatter(logging.Formatter):
 
 
 def setup_logger():
-    LOG_FORMAT = "[%(levelname)s] %(asctime)s | trace_id: %(trace_id)s | %(shortname)s | %(message)s"
+    LOG_FORMAT = "[%(levelname)s] | trace_id: %(trace_id)s | %(shortname)s | %(message)s"
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
     dictConfig({

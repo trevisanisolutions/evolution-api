@@ -1,4 +1,5 @@
 import logging
+import re
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -20,6 +21,9 @@ async def evolution_presence_update(request: Request):
         incoming = PresenceUpdateDTO(data)
         user_phone, last_presence = incoming.get_user_presence_info()
         logger.debug(f"[evolution_presence_update] {user_phone} -> {last_presence}")
+        if not re.match(r"^5551", user_phone):
+            logger.warning(f"[evolution_presence_update] Telefone diferente do código de área permitido: {user_phone}")
+            return JSONResponse(content={"status": "success"})
         BufferService.update_presence_to_buffer(user_phone, last_presence)
         return JSONResponse(content={"status": "success"})
     except ValueError as ve:
@@ -38,6 +42,10 @@ async def evolution_messages_upsert(request: Request):
             return JSONResponse(content={"status": "error", "message": "Dados inválidos"}, status_code=400)
         logger.debug(f"[evolution_messages_upsert] Payload: {payload}")
         incoming = MessageUpsertDTO(payload)
+        if not re.match(r"^5551", incoming.user_phone):
+            logger.warning(
+                f"[evolution_messages_upsert] Telefone diferente do código de área permitido: {incoming.user_msg}")
+            return JSONResponse(content={"status": "success"})
         IncomingService.handle_incoming_message(incoming)
         return JSONResponse(content={"status": "success"})
     except Exception as e:
