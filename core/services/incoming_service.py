@@ -24,6 +24,10 @@ class IncomingService:
         if not incoming.user_msg:
             logger.warning(f"[handle_evolution_whatsapp] Empty message from {incoming.user_identification}")
             return None
+        elif HumanAttendanceService.is_human_attendance_active(incoming.instance_name, incoming.business_phone,
+                                                               incoming.user_phone):
+            return ConversationHistoryService.append_message(incoming.business_phone, incoming.user_phone, "user",
+                                                             incoming.user_msg)
         elif len(incoming.user_msg) > MAX_MESSAGE_LENGTH:
             return IncomingService._handle_message_max_length(incoming)
         elif "reset" == lower(incoming.user_msg):
@@ -33,16 +37,10 @@ class IncomingService:
                 return IncomingService._handle_attendant_message(incoming.instance_name, incoming.business_phone,
                                                                  incoming.user_msg,
                                                                  incoming.user_phone)
-
             ConversationHistoryService.append_message(incoming.business_phone, incoming.user_phone,
                                                       "[Atendente Humano]", incoming.user_msg)
             return BufferService.add_to_buffer(incoming.business_phone, incoming.user_phone, incoming.user_msg,
                                                incoming.instance_name)
-
-        elif HumanAttendanceService.is_human_attendance_active(incoming.instance_name, incoming.business_phone,
-                                                               incoming.user_phone):
-            return ConversationHistoryService.append_message(incoming.business_phone, incoming.user_phone, "user",
-                                                             incoming.user_msg)
         else:
             WhatsappService.mark_message_as_read(incoming.instance_name, incoming.remote_jid, incoming.message_id)
             BufferService.add_to_buffer(incoming.business_phone, incoming.user_phone, incoming.user_msg,

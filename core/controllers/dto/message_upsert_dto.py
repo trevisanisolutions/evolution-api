@@ -34,8 +34,12 @@ def _transcribe_audio_from_base64(business_phone: str, base64_data: str, extensi
 
 class MessageUpsertDTO:
     def __init__(self, payload: dict):
-        self.data = payload.get("data", {})
-        self.key = self.data.get("key", {})
+        self.data = payload.get("data")
+        if self.data is None:
+            raise ValueError("Payload data is missing or invalid")
+        self.key = self.data.get("key")
+        if self.key is None:
+            raise ValueError("Payload key is missing or invalid")
         self.message_data = self.data.get("message", {})
         self.message_type = self.data.get("messageType", "")
         self.remote_jid = self.key.get("remoteJid", "")
@@ -49,6 +53,7 @@ class MessageUpsertDTO:
         self.user_push_name = self.data.get("pushName", "Desconhecido")
         self.is_admin = self.business_phone == self.user_phone
         self.user_identification = f"{self.user_push_name}-({self.user_phone})"
+        self.user_phone_area_code = self.user_phone[2:4] if len(self.user_phone) >= 4 else ""
 
     def _extract_message(self):
         ignored_type = {
