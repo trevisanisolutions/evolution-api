@@ -40,8 +40,11 @@ class WhatsappService:
 
     @staticmethod
     def send_evolution_response(instance_name, to_number, message_text):
-        logger.info(
-            f"[Message Response] {instance_name} -> {to_number} -> {message_text}")
+        logger.debug(
+            f"[send_evolution_response] {instance_name} -> {to_number} -> {message_text}")
+        if len(to_number)< 13:
+            to_number = to_number[:4] + "9"+ to_number[4:]
+        logger.info(f"[Message Response] {instance_name} -> {to_number} -> {message_text}")
         try:
             api_key = os.environ.get('EVOLUTION_API_KEY')
             api_url = os.environ.get('EVOLUTION_API_URL')

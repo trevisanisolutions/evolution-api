@@ -77,7 +77,7 @@ class IncomingService:
             human_attendance_path = f"establishments/{business_phone}/users/{user_phone}/human_attendance/active"
             human_attendance_flag = FirebaseClient.fetch_data(human_attendance_path) or False
             activated_message = "reativada" if human_attendance_flag else "desativada"
-            message = f"🤖 IA {activated_message} manualmente."
+            message = f"Asistente Virtual {activated_message} manualmente."
             logger.warning(f"[handle_attendant_message] {message} para {user_phone} em {business_phone}")
             WhatsappService.send_evolution_response(instance_name, user_phone, message)
             FirebaseClient.save_data(human_attendance_path, not human_attendance_flag)
