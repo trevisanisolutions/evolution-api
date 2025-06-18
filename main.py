@@ -9,6 +9,7 @@ from fastapi import FastAPI
 
 from core.controllers.admin_controller import admin_router
 from core.controllers.health_controller import health_router
+from core.controllers.reminder_controller import reminder_router
 from core.controllers.whatsapp_controller import whatsapp_router
 from core.dao.firebase_client import init_firebase, FirebaseClient
 from core.services.buffer.buffer_collector import BufferCollector
@@ -34,8 +35,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(health_router)
-app.include_router(whatsapp_router)
 app.include_router(admin_router)
+app.include_router(reminder_router)
+app.include_router(whatsapp_router)
 
 if __name__ == "__main__":
     load_dotenv(override=True)
