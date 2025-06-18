@@ -77,6 +77,7 @@ class MessageUpsertDTO:
             f"user_phone={self.user_phone}, "
             f"user_push_name={self.user_push_name}, "
             f"message_type={self.message_type}, "
+            f"from_me={self.from_me}, "
             f"user_msg={self.user_msg}, "
             f"instance_name={self.instance_name}, "
             f"business_phone={self.business_phone}"
