@@ -57,7 +57,7 @@ class MessageUpsertDTO:
 
     def _extract_message(self):
         ignored_type = {
-            "imageMessage", "videoMessage", "documentMessage",
+            "imageMessage", "videoMessage", "documentMessage", "videoMessage",
             "stickerMessage", "reactionMessage", "locationMessage", "liveLocationMessage", "ptvMessage"
         }
         if self.message_type in ignored_type:
@@ -70,3 +70,15 @@ class MessageUpsertDTO:
             audio_base64 = self.message_data.get("base64", "")
             return _transcribe_audio_from_base64(self.business_phone, audio_base64)
         return f"[{self.message_type} message]"
+
+    def __str__(self):
+        return (
+            f"MessageUpsertDTO("
+            f"user_phone={self.user_phone}, "
+            f"user_push_name={self.user_push_name}, "
+            f"message_type={self.message_type}, "
+            f"user_msg={self.user_msg}, "
+            f"instance_name={self.instance_name}, "
+            f"business_phone={self.business_phone}"
+            f")"
+        )
