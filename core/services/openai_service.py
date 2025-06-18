@@ -47,7 +47,10 @@ class OpenaiService:
         return ""
 
     @staticmethod
-    def execute_run(assistant_id, business_phone, client, instance_name, thread_id, user_phone):
+    def execute_run(assistant_id, business_phone, client, instance_name, thread_id, user_phone, attempt=0):
+        if attempt > 3:
+            logger.error(f"[execute_run] {instance_name} -> {user_phone} -> {thread_id}. ERRO na execução da run.")
+            raise Exception(f"[execute_run] attempt {attempt} > 3")
         run = client.beta.threads.runs.create(thread_id=thread_id, assistant_id=assistant_id)
         count = 0
         while run.status not in ["completed", "failed", "cancelled"]:
@@ -71,5 +74,8 @@ class OpenaiService:
             count += 1
         if run.status in ["failed", "cancelled", "expired"]:
             logger.warning(f"[AI] Run falhou ou foi cancelada.")
-            run = OpenaiService.execute_run(assistant_id, business_phone, client, instance_name, thread_id, user_phone)
+            time.sleep(10)
+            attempt += 1
+            run = OpenaiService.execute_run(assistant_id, business_phone, client, instance_name, thread_id, user_phone,
+                                            attempt)
         return run
