@@ -10,7 +10,7 @@ from core.dao.firebase_client import FirebaseClient
 def _transcribe_audio_from_base64(business_phone: str, base64_data: str, extension=".ogg") -> str:
     try:
         openai_key = FirebaseClient.fetch_data(f"establishments/{business_phone}/openai_key")
-        client = OpenAI(api_key=openai_key)  # ← move para dentro da função
+        client = OpenAI(api_key=openai_key)
         audio_bytes = base64.b64decode(base64_data)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=extension) as temp_file:

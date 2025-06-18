@@ -3,14 +3,16 @@ import re
 
 import requests
 
+from core.utils.constants import get_environment
+
 logger = logging.getLogger(__name__)
 
 
-# TODO: Verificar URLs de produção
 class SEC24ApiClient:
-    BASE_URL = "https://dev.sec24.com.br"
-    AUTH_URL = f"{BASE_URL}/auth/realms/saudeemcasa/protocol/openid-connect/token"
-    AUTH_HEADER = "Basic YXNzaXN0YW50LWNoYXQtc2VydmljZTpZYzNrQVRKRHRoVzlJNTVqZlpqaHRLRHJzUFpnRnpvbg=="
+    BASE_URL = "https://app.sec24.com.br" if get_environment() == 'production' else "https://dev.sec24.com.br"
+    AUTH_BASE_URL = f"https://app.sec24.com.br" if get_environment() == 'production' else {BASE_URL}
+    AUTH_URL = f"{AUTH_BASE_URL}/auth/realms/saudeemcasa/protocol/openid-connect/token" if get_environment() == 'production' else f"{BASE_URL}/auth/realms/saudeemcasa/protocol/openid-connect/token"
+    AUTH_HEADER = "Basic YXNzaXN0YW50LWNoYXQtc2VydmljZTpyQWRnRTZDVjZ5a0thWFJEeFRiS3p5cXAxWDZFQ25FdTo=" if get_environment() == 'production' else "Basic YXNzaXN0YW50LWNoYXQtc2VydmljZTpZYzNrQVRKRHRoVzlJNTVqZlpqaHRLRHJzUFpnRnpvbg=="
 
     @staticmethod
     def get_auth_token():
