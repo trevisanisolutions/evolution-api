@@ -80,16 +80,19 @@ def _check_zombie_buffers():
         replica_id = buffer.get("replica_id", "")
 
         if now - replica_id_last_updated > ZOMBIE_BUFFER_TIMEOUT_SECONDS or not replica_id:
-            logger.warning(
-                f"[ZOMBIE BUFFER] Buffer zumbi encontrado para {user_phone}. Reassociando à réplica {REPLICA_ID}")
+            if buffer.get("messages"):
+                logger.warning(
+                    f"[ZOMBIE BUFFER] Buffer zumbi encontrado para {user_phone}. Reassociando à réplica {REPLICA_ID}")
 
-            updates = {
-                "replica_id": REPLICA_ID,
-                "last_updated": now,
-                "replica_id_last_updated": now
-            }
-
-            BufferService.update_buffer(user_phone, updates)
+                updates = {
+                    "replica_id": REPLICA_ID,
+                    "last_updated": now,
+                    "replica_id_last_updated": now
+                }
+                BufferService.update_buffer(user_phone, updates)
+            else:
+                BufferService.clear_buffer(user_phone)
+                logger.warning(f"[ZOMBIE BUFFER] Buffer zumbi e sem mensagens encontrado e removido para {user_phone}.")
 
 
 class BufferCollector:
