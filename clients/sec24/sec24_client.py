@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 class SEC24ApiClient:
     BASE_URL = "https://app.sec24.com.br" if get_environment() == 'production' else "https://dev.sec24.com.br"
-    AUTH_BASE_URL = f"https://app.sec24.com.br" if get_environment() == 'production' else {BASE_URL}
-    AUTH_URL = f"{AUTH_BASE_URL}/auth/realms/saudeemcasa/protocol/openid-connect/token" if get_environment() == 'production' else f"{BASE_URL}/auth/realms/saudeemcasa/protocol/openid-connect/token"
-    AUTH_HEADER = "Basic YXNzaXN0YW50LWNoYXQtc2VydmljZTpyQWRnRTZDVjZ5a0thWFJEeFRiS3p5cXAxWDZFQ25FdTo=" if get_environment() == 'production' else "Basic YXNzaXN0YW50LWNoYXQtc2VydmljZTpZYzNrQVRKRHRoVzlJNTVqZlpqaHRLRHJzUFpnRnpvbg=="
+    AUTH_BASE_URL = f"https://sso.sec24.com.br" if get_environment() == 'production' else {BASE_URL}
+    AUTH_URL = f"{AUTH_BASE_URL}:8443/realms/saudeemcasa/protocol/openid-connect/token" if get_environment() == 'production' else f"{BASE_URL}/auth/realms/saudeemcasa/protocol/openid-connect/token"
+    AUTH_HEADER = "Basic YXNzaXN0YW50LWNoYXQtc2VydmljZTpyQWRnRTZDVjZ5a0thWFJEeFRiS3p5cXAxWDZFQ25FdQ==" if get_environment() == 'production' else "Basic YXNzaXN0YW50LWNoYXQtc2VydmljZTpZYzNrQVRKRHRoVzlJNTVqZlpqaHRLRHJzUFpnRnpvbg=="
 
     @staticmethod
     def get_auth_token():
@@ -23,6 +23,7 @@ class SEC24ApiClient:
                 "Authorization": SEC24ApiClient.AUTH_HEADER
             }
             data = {"grant_type": "client_credentials"}
+            logger.debug(f"[get_auth_token]: {SEC24ApiClient.AUTH_URL}, headers: {headers}, data: {data}")
             response = requests.post(SEC24ApiClient.AUTH_URL, headers=headers, data=data)
             if response.status_code == 200:
                 return response.json().get("access_token")
@@ -41,6 +42,7 @@ class SEC24ApiClient:
                 "Accept": "application/json",
                 "Content-Type": "application/json"
             }
+            logger.debug(f"[create_user]: {url}, headers: {headers}, user_data: {user_data}")
             return requests.post(url, headers=headers, json=user_data)
         except Exception as e:
             logger.error(f"Create user exception: {str(e)}")
@@ -55,6 +57,7 @@ class SEC24ApiClient:
                 "Authorization": f"Bearer {token}",
                 "Accept": "application/json"
             }
+            logger.debug(f"[find_user_by_cpf]: {url}, headers: {headers}, formatted_cpf: {formatted_cpf}")
             return requests.get(url, headers=headers)
         except Exception as e:
             logger.error(f"Erro ao buscar usuário por CPF: {str(e)}")

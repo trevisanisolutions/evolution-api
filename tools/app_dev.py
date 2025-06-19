@@ -1,9 +1,9 @@
 from dotenv import load_dotenv
+load_dotenv(override=True)
 
 from core.dao.firebase_client import init_firebase, FirebaseClient
 from core.services.process_message_service import ProcessMessageService
 
-load_dotenv(override=True)
 init_firebase()
 
 print("🔧 Modo Desenvolvedor Inicializado (sem FastAPI, sem BufferCollector)\n")

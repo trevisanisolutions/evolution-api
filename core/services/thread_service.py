@@ -43,7 +43,7 @@ class ThreadService:
         thread = client.beta.threads.create()
         current_time = int(time.time())
         thread_info = {"thread_id": thread.id, "hash_instructions": assistant_hash_instructions,
-                       "thread_last_used_at": current_time}
+                       "thread_last_used_at": current_time, "agent_last_used_at": current_time}
         FirebaseClient.save_data(path, thread_info)
         logger.info(
             f"[create_new_thread] Nova thread criada: {thread_info.get('thread_id')} para {user_phone}/{agent_id}")
