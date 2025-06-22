@@ -24,6 +24,9 @@ class IncomingService:
         if not incoming.user_msg:
             logger.warning(f"[handle_evolution_whatsapp] Empty message from {incoming.user_identification}")
             return None
+        elif lower(incoming.user_msg) in ["/resumoia", "/oria"]:
+            logger.warning(f"[handle_evolution_whatsapp] Ignore message from {incoming.user_identification}")
+            return None
         elif incoming.from_me:
             if not incoming.is_admin:
                 return IncomingService._handle_attendant_message(incoming.instance_name, incoming.business_phone,
