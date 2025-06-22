@@ -17,14 +17,18 @@ class ReminderService:
 
         establishments = FirebaseClient.fetch_data("establishments") or {}
         target_date = TODAY + timedelta(days=1)
+        logger.info(f"[Reminder] Data dos eventos:{target_date}")
+
         calendar_service = get_calendar_service()
 
         for establishments_phone, establishment_data in establishments.items():
             if not establishment_data.get("config", {}).get("calendars"):
+                logger.warning(f"[Reminder] Estabelecimento {establishments_phone} não possui calendários configurados.")
                 continue
 
             instance_name = establishment_data.get("config", {}).get("instance_name")
             if not instance_name:
+                logger.warning(f"[Reminder] Estabelecimento {establishments_phone} não possui nome de instância configurado.")
                 continue
 
             events_user_map = {}
@@ -44,15 +48,21 @@ class ReminderService:
 
                     for event in events_result.get("items", []):
                         props = event.get("extendedProperties", {}).get("private", {})
-                        if props.get("reminder_24h_sent") or props.get("created_by") != "virtual_assistant":
+                        if props.get("created_by") != "virtual_assistant":
+                            logger.warning(f"[Reminder] Evento {event['id']} não foi criado pelo assistente virtual, ignorando.")
+                            continue
+                        if props.get("reminder_24h_sent"):
+                            logger.warning(f"[Reminder] Evento {event['id']} já teve lembrete enviado ou não foi criado pelo assistente virtual, ignorando.")
                             continue
 
                         user_phone = props.get("user_phone")
                         if not user_phone:
+                            logger.warning(f"[Reminder] Evento {event['id']} não possui telefone do usuário, ignorando.")
                             continue
 
                         start_time = event["start"].get("dateTime")
                         if not start_time:
+                            logger.warning(f"[Reminder] Evento {event['id']} não possui horário de início, ignorando.")
                             continue
 
                         dt = datetime.fromisoformat(start_time.replace("Z", "+00:00")).astimezone(TIMEZONE)
@@ -67,6 +77,7 @@ class ReminderService:
                             "event": event,
                             "instance": instance_name
                         }
+                        logger.info(f"[Reminder] Evento encontrado para {user_phone}: {entry}")
 
                         events_user_map.setdefault(user_phone, []).append(entry)
 
