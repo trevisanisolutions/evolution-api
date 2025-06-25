@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from core.dao.firebase_client import FirebaseClient
 from core.services.calendar.client import get_calendar_service
 from core.services.whatsapp_service import WhatsappService
-from core.utils.constants import TIMEZONE, TODAY
+from core.utils.constants import TIMEZONE
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class ReminderService:
         logger.info("[Reminder] Executando rotina de envio de lembretes de 24h...")
 
         establishments = FirebaseClient.fetch_data("establishments") or {}
-        target_date = TODAY + timedelta(days=1)
+        target_date = datetime.now(TIMEZONE).date() + timedelta(days=1)
         logger.info(f"[Reminder] Data dos eventos:{target_date}")
 
         calendar_service = get_calendar_service()
@@ -49,20 +49,20 @@ class ReminderService:
                     for event in events_result.get("items", []):
                         props = event.get("extendedProperties", {}).get("private", {})
                         if props.get("created_by") != "virtual_assistant":
-                            logger.warning(f"[Reminder] Evento {event['id']} não foi criado pelo assistente virtual, ignorando.")
+                            logger.warning(f"[Reminder] Evento {event['summary']} não foi criado pelo assistente virtual, ignorando.")
                             continue
                         if props.get("reminder_24h_sent"):
-                            logger.warning(f"[Reminder] Evento {event['id']} já teve lembrete enviado ou não foi criado pelo assistente virtual, ignorando.")
+                            logger.warning(f"[Reminder] Evento {event['summary']} já teve lembrete enviado, ignorando.")
                             continue
 
                         user_phone = props.get("user_phone")
                         if not user_phone:
-                            logger.warning(f"[Reminder] Evento {event['id']} não possui telefone do usuário, ignorando.")
+                            logger.warning(f"[Reminder] Evento {event['summary']} não possui telefone do usuário, ignorando.")
                             continue
 
                         start_time = event["start"].get("dateTime")
                         if not start_time:
-                            logger.warning(f"[Reminder] Evento {event['id']} não possui horário de início, ignorando.")
+                            logger.warning(f"[Reminder] Evento {event['summary']} não possui horário de início, ignorando.")
                             continue
 
                         dt = datetime.fromisoformat(start_time.replace("Z", "+00:00")).astimezone(TIMEZONE)

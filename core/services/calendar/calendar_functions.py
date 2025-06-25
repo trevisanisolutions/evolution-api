@@ -8,7 +8,7 @@ from core.services.calendar.client import get_calendar_service
 from core.services.calendar.utils import parse_date, parse_datetime, find_event, get_event_duration, create_event_body, \
     get_weekday_pt, get_day_time_range
 from core.utils.constants import INTERNAL_DATE_FORMAT, INTERNAL_TIME_FORMAT, DEFAULT_APPOINTMENT_DURATION_SECONDS, \
-    DEFAULT_PROCEDURE_CAPACITY, TODAY, TIMEZONE
+    DEFAULT_PROCEDURE_CAPACITY, TIMEZONE
 from core.utils.date_utils import get_holidays
 from core.utils.tool_utils import json_success, json_error, json_partial_success
 
@@ -72,9 +72,9 @@ def get_appointments(args):
     service = get_calendar_service()
 
     try:
-        end_date = TODAY + timedelta(days=range_days)
+        end_date = datetime.now(TIMEZONE).date() + timedelta(days=range_days)
 
-        start_utc = TIMEZONE.localize(datetime.combine(TODAY, datetime.min.time())).astimezone(tz.utc)
+        start_utc = TIMEZONE.localize(datetime.combine(datetime.now(TIMEZONE).date(), datetime.min.time())).astimezone(tz.utc)
         end_utc = TIMEZONE.localize(datetime.combine(end_date, datetime.max.time())).astimezone(tz.utc)
 
         events_result = service.events().list(

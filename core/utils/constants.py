@@ -36,7 +36,6 @@ WEEKDAY_MAP = {
 }
 
 TIMEZONE = pytz.timezone('America/Sao_Paulo')
-TODAY = datetime.now(TIMEZONE).date()
 
 GOOGLE_CALENDAR_CREDENTIALS_FILE = 'calendar_credentials.json'
 
