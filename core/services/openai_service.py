@@ -53,12 +53,13 @@ class OpenaiService:
             raise Exception(f"[execute_run] attempt {attempt} > 3")
         run = client.beta.threads.runs.create(thread_id=thread_id, assistant_id=assistant_id)
         count = 0
-        while run.status not in ["completed", "failed", "cancelled"]:
+        while run.status not in ["completed", "failed", "cancelled", "expired"]:
             logger.debug(f"[run.status] {run.status}")
             time.sleep(1)
             if count == 60:
                 logger.warning(f"[Run Timeout] Tempo limite de execução atingido, cancelando a execução.")
                 client.beta.threads.runs.cancel(thread_id=thread_id, run_id=run.id)
+                break
             run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
             if run.status == "requires_action":
                 result = []
