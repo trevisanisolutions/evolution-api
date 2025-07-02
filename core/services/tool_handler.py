@@ -53,6 +53,9 @@ class ToolHandler:
                 case "trocar_agente":
                     result = ToolHandler._handle_switch_agent(args, business_phone, user_phone, instance_name)
 
+                case "atualizar_dados_usuario":
+                    result = ToolHandler._handle_update_user_data(args, business_phone, user_phone)
+
                 case "atendimento_humano":
                     result = ToolHandler._handle_human_attendance(business_phone, user_phone)
 
@@ -87,6 +90,13 @@ class ToolHandler:
         BufferService.add_to_buffer(business_phone, user_phone, "Olá", instance_name)
         FirebaseClient.save_data(f"establishments/{business_phone}/users/{user_phone}/current_agent", new_agent_id)
         return ToolHandler._build_success_response("Troca de agente concluída com sucesso")
+
+    @staticmethod
+    def _handle_update_user_data(args, business_phone, user_phone):
+        logger.debug(f"[_handle_update_user_data] {args} -> {business_phone} -> {user_phone}")
+        user_summary = args.get("user_summary")
+        FirebaseClient.save_data(f"establishments/{business_phone}/users/{user_phone}/user_summary", user_summary)
+        return ToolHandler._build_success_response("Dados do usuários atualizados com sucesso")
 
     @staticmethod
     def _handle_human_attendance(business_phone, user_phone):

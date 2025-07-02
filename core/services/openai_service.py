@@ -21,8 +21,11 @@ class OpenaiService:
         thread_id = ThreadService.get_thread_id(business_phone, user_phone, agent_id)
         api_key = FirebaseClient.fetch_data(f"establishments/{business_phone}/openai_key")
         client = OpenAI(api_key=api_key)
-        user_phone_context = "" if user_phone == business_phone else f"O número do telefone do usuário é {user_phone}."
-        context = f"⚠️ CONTEXTO AUXILIAR: Hoje é {get_today_formated()}\n{user_phone_context}"
+        user_context = "" if user_phone == business_phone else f"O número do telefone do usuário é {user_phone}."
+        user_summary = FirebaseClient.fetch_data(f"establishments/{business_phone}/users/{user_phone}/user_summary")
+        if user_summary:
+            user_context += f"\nOs principais dados do usuário são: {user_summary}."
+        context = f"⚠️ CONTEXTO AUXILIAR:\nHoje é {get_today_formated()}.\n{user_context}"
         client.beta.threads.messages.create(thread_id=thread_id, role="user", content=context)
         client.beta.threads.messages.create(thread_id=thread_id, role="user", content=user_msg)
 
@@ -74,7 +77,7 @@ class OpenaiService:
                 )
             count += 1
         if run.status in ["failed", "cancelled", "expired"]:
-            logger.warning(f"[AI] Run falhou ou foi cancelada.")
+            logger.warning(f"[AI] [run.status]-> {run.status}: Run falhou.")
             time.sleep(10)
             attempt += 1
             run = OpenaiService.execute_run(assistant_id, business_phone, client, instance_name, thread_id, user_phone,
