@@ -3,11 +3,11 @@ from functools import lru_cache
 
 import requests
 
-from core.utils.constants import WEEK_DAYS, MONTHS
+from core.utils.constants import WEEK_DAYS, MONTHS, TIMEZONE
 
 
 def get_today_formated():
-    hoje = datetime.datetime.now()
+    hoje = datetime.datetime.now(TIMEZONE)
 
     week_day = WEEK_DAYS[hoje.weekday()]
     day = hoje.day

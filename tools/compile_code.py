@@ -19,6 +19,8 @@ import sys
 import time
 from pathlib import Path
 
+from core.utils.constants import TIMEZONE
+
 # Adiciona o diretório raiz ao PATH para poder importar os módulos da aplicação
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -152,7 +154,7 @@ def compile_project(project_path, output_file, ignored_dirs, ignored_files, incl
     full_content = f"""# PROJETO COMPILADO
 # Gerado automaticamente a partir de {project_path}
 # Total de arquivos: {len(all_files)}
-# Data de geração: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+# Data de geração: {datetime.datetime.now(TIMEZONE).strftime('%Y-%m-%d %H:%M:%S')}
 
 """
 

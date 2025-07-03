@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from core.dao.firebase_client import FirebaseClient
+from core.utils.constants import TIMEZONE
 
 health_router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ async def health_check():
         system_info = {
             "hostname": socket.gethostname(),
             "ip_address": socket.gethostbyname(socket.gethostname()),
-            "timestamp": datetime.datetime.now().isoformat(),
+            "timestamp": datetime.datetime.now(TIMEZONE).isoformat(),
             "environment": environment_name,
             "version": os.environ.get('APP_VERSION')
         }
@@ -44,7 +45,7 @@ async def health_check():
         return JSONResponse(content={
             "status": "error",
             "message": str(e),
-            "timestamp": datetime.datetime.now().isoformat()
+            "timestamp": datetime.datetime.now(TIMEZONE).isoformat()
         }, status_code=503)
 
 

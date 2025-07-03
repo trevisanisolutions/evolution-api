@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from core.dao.firebase_client import FirebaseClient
+from core.utils.constants import TIMEZONE
 
 
 class UsageTrackerService:
@@ -10,7 +11,7 @@ class UsageTrackerService:
         if not establishment_id:
             return
 
-        month_key = datetime.now().strftime("%Y-%m")
+        month_key = datetime.now(TIMEZONE).strftime("%Y-%m")
         path = f"establishments/{establishment_id}/usage/{month_key}"
 
         existing = FirebaseClient.fetch_data(path) or {}
@@ -18,7 +19,7 @@ class UsageTrackerService:
         updated = {
             "tokens_input": existing.get("tokens_input", 0) + input_tokens,
             "tokens_output": existing.get("tokens_output", 0) + output_tokens,
-            "last_update": int(datetime.now().timestamp())
+            "last_update": int(datetime.now(TIMEZONE).timestamp())
         }
 
         FirebaseClient.save_data(path, updated)
