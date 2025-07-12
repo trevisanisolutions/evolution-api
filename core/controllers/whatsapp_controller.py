@@ -69,10 +69,9 @@ def _is_area_code_not_permitted(user_phone_area_code: str, business_phone: str) 
     if not allowed_codes:
         logger.warning(
             f"[Código de Área] Nenhum código de área permitido configurado para o estabelecimento: {business_phone}")
+        logger.debug(f"[_not_permitted_phone_are_code] Códigos de área permitidos: {allowed_codes}")
+        logger.debug(f"[_not_permitted_phone_are_code] Código de área do usuário: {user_phone_area_code}")
         return False
-
-    logger.debug(f"[_not_permitted_phone_are_code] Códigos de área permitidos: {allowed_codes}")
-    logger.debug(f"[_not_permitted_phone_are_code] Código de área do usuário: {user_phone_area_code}")
 
     if user_phone_area_code in allowed_codes:
         return False

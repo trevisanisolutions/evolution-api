@@ -33,8 +33,12 @@ class IncomingService:
                                                       "[Atendente Humano]", incoming.user_msg)
             return BufferService.add_to_buffer(incoming.business_phone, incoming.user_phone, incoming.user_msg,
                                                incoming.instance_name)
+        elif "🤖🤖" in lower(incoming.user_msg.strip()) and incoming.user_phone == "555181216156":
+            return HumanAttendanceService.toggle_ia_disabled(incoming.instance_name, incoming.business_phone,
+                                                             incoming.user_phone)
         elif HumanAttendanceService.is_human_attendance_active(incoming.instance_name, incoming.business_phone,
-                                                               incoming.user_phone):
+                                                               incoming.user_phone) or HumanAttendanceService.is_ia_disabled(
+            incoming.business_phone, incoming.user_phone):
             return ConversationHistoryService.append_message(incoming.business_phone, incoming.user_phone, "user",
                                                              incoming.user_msg)
         elif len(incoming.user_msg) > MAX_MESSAGE_LENGTH:
@@ -73,10 +77,12 @@ class IncomingService:
         now = int(time.time())
         FirebaseClient.save_data(
             f"establishments/{business_phone}/users/{user_phone}/human_attendance/last_message_timestamp", now)
-        if "🤖" in user_msg.strip():
+        if "🤖🤖" in user_msg.strip():
+            HumanAttendanceService.toggle_ia_disabled(instance_name, business_phone, user_phone)
+        elif "️🤖" in user_msg.strip():
             human_attendance_path = f"establishments/{business_phone}/users/{user_phone}/human_attendance/active"
             human_attendance_flag = FirebaseClient.fetch_data(human_attendance_path) or False
-            activated_message = "reativada" if human_attendance_flag else "desativada"
+            activated_message = "retomada" if human_attendance_flag else "pausada"
             message = f"Asistente Virtual {activated_message} manualmente."
             logger.warning(f"[handle_attendant_message] {message} para {user_phone} em {business_phone}")
             WhatsappService.send_evolution_response(instance_name, user_phone, message)
