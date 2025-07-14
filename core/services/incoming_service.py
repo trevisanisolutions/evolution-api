@@ -24,15 +24,20 @@ class IncomingService:
         if not incoming.user_msg:
             logger.warning(f"[handle_evolution_whatsapp] Empty message from {incoming.user_identification}")
             return None
+        elif len(incoming.user_msg) > MAX_MESSAGE_LENGTH:
+            return IncomingService._handle_message_max_length(incoming)
+        elif "reset" == lower(incoming.user_msg):
+            return IncomingService._handle_reset_context(incoming)
         elif incoming.from_me:
             if not incoming.is_admin:
                 return IncomingService._handle_attendant_message(incoming.instance_name, incoming.business_phone,
                                                                  incoming.user_msg,
                                                                  incoming.user_phone)
-            ConversationHistoryService.append_message(incoming.business_phone, incoming.user_phone,
-                                                      "[Atendente Humano]", incoming.user_msg)
-            return BufferService.add_to_buffer(incoming.business_phone, incoming.user_phone, incoming.user_msg,
-                                               incoming.instance_name)
+            else:
+                ConversationHistoryService.append_message(incoming.business_phone, incoming.user_phone,
+                                                          "[Atendente Humano]", incoming.user_msg)
+                return BufferService.add_to_buffer(incoming.business_phone, incoming.user_phone, incoming.user_msg,
+                                                   incoming.instance_name)
         elif "🤖🤖" in lower(incoming.user_msg.strip()) and incoming.user_phone == "555181216156":
             return HumanAttendanceService.toggle_ia_disabled(incoming.instance_name, incoming.business_phone,
                                                              incoming.user_phone)
@@ -41,10 +46,6 @@ class IncomingService:
             incoming.business_phone, incoming.user_phone):
             return ConversationHistoryService.append_message(incoming.business_phone, incoming.user_phone, "user",
                                                              incoming.user_msg)
-        elif len(incoming.user_msg) > MAX_MESSAGE_LENGTH:
-            return IncomingService._handle_message_max_length(incoming)
-        elif "reset" == lower(incoming.user_msg):
-            return IncomingService._handle_reset_context(incoming)
         else:
             WhatsappService.mark_message_as_read(incoming.instance_name, incoming.remote_jid, incoming.message_id)
             BufferService.add_to_buffer(incoming.business_phone, incoming.user_phone, incoming.user_msg,
@@ -79,7 +80,7 @@ class IncomingService:
             f"establishments/{business_phone}/users/{user_phone}/human_attendance/last_message_timestamp", now)
         if "🤖🤖" in user_msg.strip():
             HumanAttendanceService.toggle_ia_disabled(instance_name, business_phone, user_phone)
-        elif "️🤖" in user_msg.strip():
+        elif "🤖" in user_msg.strip():
             human_attendance_path = f"establishments/{business_phone}/users/{user_phone}/human_attendance/active"
             human_attendance_flag = FirebaseClient.fetch_data(human_attendance_path) or False
             activated_message = "retomada" if human_attendance_flag else "pausada"
