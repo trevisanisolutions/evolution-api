@@ -74,7 +74,8 @@ def get_appointments(args):
     try:
         end_date = datetime.now(TIMEZONE).date() + timedelta(days=range_days)
 
-        start_utc = TIMEZONE.localize(datetime.combine(datetime.now(TIMEZONE).date(), datetime.min.time())).astimezone(tz.utc)
+        start_utc = TIMEZONE.localize(datetime.combine(datetime.now(TIMEZONE).date(), datetime.min.time())).astimezone(
+            tz.utc)
         end_utc = TIMEZONE.localize(datetime.combine(end_date, datetime.max.time())).astimezone(tz.utc)
 
         events_result = service.events().list(

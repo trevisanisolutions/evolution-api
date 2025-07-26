@@ -129,7 +129,6 @@ def find_event(service, calendar_id, date_str, time_str, timezone, procedure):
             timeMax=time_max,
             singleEvents=True,
             orderBy='startTime',
-            maxResults=1
         ).execute()
         events = events_result.get('items', [])
 
@@ -170,46 +169,3 @@ def find_event(service, calendar_id, date_str, time_str, timezone, procedure):
     except Exception as e:
         logger.error(f"Um erro inesperado ocorreu ao encontrar o evento: {e}")
         return None
-
-
-def find_events_at_slot(service, calendar_id, date_str, time_str, timezone, procedure, exclude_event_id=None):
-    try:
-        localized_dt = parse_datetime(date_str, time_str, timezone)
-        utc_dt = localized_dt.astimezone(pytz.utc)
-
-        time_min = utc_dt.isoformat()
-        time_max = (utc_dt + datetime.timedelta(minutes=1)).isoformat()
-
-        events_result = service.events().list(
-            calendarId=calendar_id,
-            timeMin=time_min,
-            timeMax=time_max,
-            singleEvents=True,
-            orderBy='startTime',
-            maxResults=10
-        ).execute()
-
-        events = events_result.get('items', [])
-
-        if exclude_event_id:
-            events = [e for e in events if e.get('id') != exclude_event_id]
-        procedure_events = [e for e in events if
-                            ('extendedProperties' in e and
-                             'private' in e['extendedProperties'] and
-                             e['extendedProperties']['private'].get('procedure') == procedure)]
-        other_procedure_events = [e for e in events if
-                                  ('extendedProperties' in e and
-                                   'private' in e['extendedProperties'] and
-                                   e['extendedProperties']['private'].get('procedure') != procedure)]
-        not_assistant_events = [e for e in events if
-                                ('extendedProperties' not in e or
-                                 'private' not in e['extendedProperties'] or
-                                 e['extendedProperties']['private'].get('created_by') != "virtual_assistant")]
-
-        return {"procedure_events": procedure_events,
-                "other_procedure_events": other_procedure_events,
-                "not_assistant_events": not_assistant_events}
-
-    except Exception as e:
-        logger.error(f"[count_events_at_slot] Erro ao contar eventos no horário {date_str} {time_str}: {e}")
-        return 0
