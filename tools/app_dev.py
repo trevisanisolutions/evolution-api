@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+
 load_dotenv(override=True)
 
 from core.dao.firebase_client import init_firebase, FirebaseClient

@@ -24,15 +24,11 @@ class IncomingService:
         if not incoming.user_msg:
             logger.warning(f"[handle_evolution_whatsapp] Empty message from {incoming.user_identification}")
             return None
-        elif HumanAttendanceService.is_human_attendance_active(incoming.instance_name, incoming.business_phone,
-                                                               incoming.user_phone) or HumanAttendanceService.is_ia_disabled(
-            incoming.business_phone, incoming.user_phone):
-            return ConversationHistoryService.append_message(incoming.business_phone, incoming.user_phone, "user",
-                                                             incoming.user_msg)
-        elif len(incoming.user_msg) > MAX_MESSAGE_LENGTH:
-            return IncomingService._handle_message_max_length(incoming)
         elif "reset" == lower(incoming.user_msg):
             return IncomingService._handle_reset_context(incoming)
+        elif "🤖🤖" in lower(incoming.user_msg.strip()) and incoming.user_phone == "555181216156":
+            return HumanAttendanceService.toggle_ia_disabled(incoming.instance_name, incoming.business_phone,
+                                                             incoming.user_phone)
         elif incoming.from_me:
             if not incoming.is_admin:
                 return IncomingService._handle_attendant_message(incoming.instance_name, incoming.business_phone,
@@ -43,9 +39,13 @@ class IncomingService:
                                                           "[Atendente Humano]", incoming.user_msg)
                 return BufferService.add_to_buffer(incoming.business_phone, incoming.user_phone, incoming.user_msg,
                                                    incoming.instance_name)
-        elif "🤖🤖" in lower(incoming.user_msg.strip()) and incoming.user_phone == "555181216156":
-            return HumanAttendanceService.toggle_ia_disabled(incoming.instance_name, incoming.business_phone,
-                                                             incoming.user_phone)
+        elif HumanAttendanceService.is_human_attendance_active(incoming.instance_name, incoming.business_phone,
+                                                               incoming.user_phone) or HumanAttendanceService.is_ia_disabled(
+            incoming.business_phone, incoming.user_phone):
+            return ConversationHistoryService.append_message(incoming.business_phone, incoming.user_phone, "user",
+                                                             incoming.user_msg)
+        elif len(incoming.user_msg) > MAX_MESSAGE_LENGTH:
+            return IncomingService._handle_message_max_length(incoming)
         else:
             WhatsappService.mark_message_as_read(incoming.instance_name, incoming.remote_jid, incoming.message_id)
             BufferService.add_to_buffer(incoming.business_phone, incoming.user_phone, incoming.user_msg,

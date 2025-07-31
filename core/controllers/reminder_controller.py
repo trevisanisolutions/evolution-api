@@ -25,4 +25,3 @@ async def execute_reminder():
         return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
     finally:
         reset_trace_id(token)
-
